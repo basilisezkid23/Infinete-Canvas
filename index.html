@@ -5,552 +5,662 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Windows 7 Style Infinite Canvas</title>
 <style>
-  /* Base reset and background */
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    background: linear-gradient(180deg, #dbe9ff 0%, #f0f4fb 100%);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    overflow: hidden;
-    user-select: none;
+  @import url('https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap');
+
+  /* Reset & basics */
+  * {
+    box-sizing: border-box;
   }
-  #app {
-    position: relative;
-    width: 100vw; height: 100vh;
-    overflow: hidden;
-    perspective: 1500px;
-    background: linear-gradient(to bottom, #e7f0ff, #c4dafc);
+  body, html {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: linear-gradient(180deg, #f2f6fb 0%, #f7f7f9 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Carousel container */
+  /* Top Toolbar */
+  .toolbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 40px;
+    background: rgba(255 255 255 / 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 12px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    backdrop-filter: blur(8px);
+    z-index: 999;
+  }
+  .btn {
+    background: #fff;
+    border: 1.5px solid rgba(0,0,0,0.15);
+    border-radius: 5px;
+    padding: 5px 12px;
+    margin-right: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #222;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn:hover {
+    background: #e6eaff;
+    box-shadow: 0 0 8px #6c7ae0aa;
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+
+  /* Greece honor button top right */
+  #greeceBtn {
+    margin-left: auto;
+    background: #0033a0;
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 5px 14px;
+    border: none;
+    border-radius: 6px;
+    box-shadow: 0 0 12px #0033a0aa;
+    user-select: none;
+  }
+  #greeceBtn:hover {
+    background: #002070;
+  }
+
+  /* Centered carousel container */
+  #carousel-container {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 700px; height: 500px;
+    margin-left: -350px;
+    margin-top: -250px;
+    perspective: 1200px;
+    user-select: none;
+  }
+
+  /* Carousel */
   #carousel {
-    width: 90vw;
-    height: 60vh;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(0.4,0,0.2,1);
+    cursor: grab;
+  }
+  #carousel:active {
+    cursor: grabbing;
+    transition: none;
+  }
+
+  /* Each item */
+  .carousel-item {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform-style: preserve-3d;
-    transform-origin: 50% 50% 0;
-    transform: translate(-50%, -50%) rotateY(0deg);
-    transition: transform 0.3s ease-out;
-    cursor: grab;
-  }
-
-  /* Each item in carousel */
-  .item {
-    position: absolute;
     width: 240px;
-    height: 135px; /* 16:9 ratio */
+    height: 160px;
+    margin: -80px -120px;
     border-radius: 12px;
-    box-shadow:
-      0 0 12px rgba(0,0,0,0.15),
-      inset 0 0 8px rgba(255,255,255,0.25);
-    background: #000;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+    background: rgba(255 255 255 / 0.85);
+    backdrop-filter: saturate(180%) blur(12px);
+    border: 1px solid rgba(255 255 255 / 0.5);
     overflow: hidden;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.5s;
-    user-select: none;
+    transition: box-shadow 0.3s ease;
   }
-  .item img, .item video {
+  .carousel-item img,
+  .carousel-item video {
     width: 100%;
     height: 100%;
     object-fit: cover;
     border-radius: 12px;
-    pointer-events: none; /* disables interaction on media itself */
   }
-  .item:hover {
-    box-shadow:
-      0 0 30px rgba(50,120,255,0.8),
-      inset 0 0 10px rgba(255,255,255,0.4);
+  .carousel-item video {
+    background: black;
+  }
+  .carousel-item:hover {
+    box-shadow: 0 10px 30px rgba(60,60,100,0.3);
   }
 
-  /* Enlarge overlay */
-  #overlay {
+  /* Playback overlay */
+  #playbackOverlay {
     position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    inset: 0;
     background: rgba(0,0,0,0.85);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    backdrop-filter: blur(12px);
-  }
-  #overlay.active {
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    z-index: 1500;
   }
-
-  #overlay video,
-  #overlay img {
-    max-width: 85vw;
-    max-height: 80vh;
-    border-radius: 12px;
-    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+  #playbackOverlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #playbackOverlay video {
+    max-width: 90vw;
+    max-height: 70vh;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
     background: black;
   }
 
-  /* Video playback controls container */
-  #videoControls {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    align-items: center;
-    background: rgba(255 255 255 / 0.15);
-    backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 8px 20px;
-    gap: 16px;
-    z-index: 1100;
-  }
-
-  #videoControls.show {
+  /* Playback controls */
+  #playbackControls {
+    margin-top: 10px;
+    width: 90vw;
+    max-width: 700px;
     display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+    background: rgba(255 255 255 / 0.1);
+    border-radius: 10px;
+    padding: 8px 12px;
+    backdrop-filter: saturate(200%) blur(20px);
   }
-
-  /* Buttons in controls */
-  #videoControls button {
+  #playbackControls button {
     background: transparent;
     border: none;
+    color: white;
+    font-size: 20px;
     cursor: pointer;
-    padding: 0;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    filter: drop-shadow(0 0 2px black);
+    transition: color 0.2s ease;
   }
-  #videoControls button svg {
-    fill: white;
-    width: 22px;
-    height: 22px;
-  }
-  #videoControls button:hover svg {
-    fill: #1e90ff;
+  #playbackControls button:hover {
+    color: #6c7ae0;
   }
 
-  /* Hide scrollbar on carousel container */
-  #carousel::-webkit-scrollbar {
-    display: none;
-  }
+  /* Icons from Unicode and some ASCII for simplicity */
+  .icon-play::before { content: "▶"; }
+  .icon-pause::before { content: "⏸"; }
+  .icon-forward::before { content: "⏩"; }
+  .icon-rewind::before { content: "⏪"; }
+  .icon-exit::before { content: "✕"; }
+  .icon-mute::before { content: "🔇"; }
+  .icon-unmute::before { content: "🔊"; }
 
-  /* Screen flash for Easter egg */
+  /* Flash colors for Easter egg */
   #flashOverlay {
-    pointer-events: none;
     position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    z-index: 9999;
-    display: none;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1400;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Greece honor overlay */
+  #greeceOverlay {
+    position: fixed;
+    inset: 0;
+    background: black;
+    color: white;
+    font-size: 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 0 20px;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+    z-index: 2000;
+    transition: opacity 3s ease;
+  }
+  #greeceOverlay p {
+    margin-bottom: 24px;
+    max-width: 700px;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+  #greeceOverlay video {
+    max-width: 80vw;
+    max-height: 60vh;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(255,255,255,0.8);
   }
 
 </style>
 </head>
 <body>
-  <div id="app" tabindex="0">
-    <div id="carousel" title="Drop images or videos here"></div>
-    <div id="overlay" aria-label="Media viewer"></div>
-    <div id="videoControls" aria-label="Video playback controls">
-      <button id="btnExit" title="Exit Playback" aria-label="Exit Playback">
-        <svg viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-      <button id="btnRewind" title="Rewind 10s" aria-label="Rewind 10 seconds">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>
-      </button>
-      <button id="btnPlayPause" title="Play / Pause" aria-label="Play or Pause">
-        <svg id="playIcon" viewBox="0 0 24 24" fill="white"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-        <svg id="pauseIcon" viewBox="0 0 24 24" fill="white" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-      </button>
-      <button id="btnFastForward" title="Fast Forward 10s" aria-label="Fast forward 10 seconds">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 5 22 12 13 19 13 5"/><polygon points="2 5 11 12 2 19 2 5"/></svg>
-      </button>
-      <button id="btnMute" title="Mute / Unmute" aria-label="Mute or Unmute">
-        <svg id="unmutedIcon" viewBox="0 0 24 24" fill="white">
-          <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-          <path d="M16.5 12a4.5 4.5 0 0 1-4.5 4.5"/>
-          <path d="M19.5 12a7.5 7.5 0 0 0-7.5-7.5"/>
-        </svg>
-        <svg id="mutedIcon" viewBox="0 0 24 24" fill="white" style="display:none">
-          <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-          <line x1="18" y1="6" x2="6" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
-          <line x1="6" y1="6" x2="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-      </button>
+
+  <div class="toolbar">
+    <button id="exportBtn" class="btn">Export HTML</button>
+    <button id="greeceBtn" title="For my country Greece">🇬🇷 Honor Greece</button>
+  </div>
+
+  <div id="carousel-container" aria-label="Files carousel" role="list"></div>
+
+  <!-- Playback overlay -->
+  <div id="playbackOverlay" aria-modal="true" role="dialog" aria-hidden="true">
+    <video id="playbackVideo" playsinline></video>
+    <div id="playbackControls">
+      <button id="btnExit" aria-label="Exit video playback" class="icon-exit"></button>
+      <button id="btnRewind" aria-label="Rewind 10 seconds" class="icon-rewind"></button>
+      <button id="btnPlayPause" aria-label="Play/Pause" class="icon-play"></button>
+      <button id="btnForward" aria-label="Fast forward 10 seconds" class="icon-forward"></button>
+      <button id="btnMute" aria-label="Mute/Unmute" class="icon-unmute"></button>
     </div>
-    <canvas id="flashOverlay"></canvas>
+  </div>
+
+  <!-- Flash overlay for easter egg -->
+  <canvas id="flashOverlay"></canvas>
+
+  <!-- Greece honor overlay -->
+  <div id="greeceOverlay" aria-live="assertive">
+    <p>This, to whoever is watching this, is for my country Greece, for Macedonia..</p>
+    <video id="greeceVideo" controls></video>
   </div>
 
 <script>
 (() => {
-  const app = document.getElementById('app');
-  const carousel = document.getElementById('carousel');
-  const overlay = document.getElementById('overlay');
-  const videoControls = document.getElementById('videoControls');
-  const flashOverlay = document.getElementById('flashOverlay');
-  const ctx = flashOverlay.getContext('2d');
+  // Globals
+  const carouselContainer = document.getElementById('carousel-container');
+  const playbackOverlay = document.getElementById('playbackOverlay');
+  const playbackVideo = document.getElementById('playbackVideo');
+  const playbackControls = document.getElementById('playbackControls');
+  const btnExit = document.getElementById('btnExit');
+  const btnPlayPause = document.getElementById('btnPlayPause');
+  const btnForward = document.getElementById('btnForward');
+  const btnRewind = document.getElementById('btnRewind');
+  const btnMute = document.getElementById('btnMute');
+  const flashCanvas = document.getElementById('flashOverlay');
+  const greeceBtn = document.getElementById('greeceBtn');
+  const greeceOverlay = document.getElementById('greeceOverlay');
+  const greeceVideo = document.getElementById('greeceVideo');
 
-  // Setup flash canvas size
-  function resizeFlashCanvas() {
-    flashOverlay.width = window.innerWidth;
-    flashOverlay.height = window.innerHeight;
-  }
-  resizeFlashCanvas();
-  window.addEventListener('resize', resizeFlashCanvas);
+  // Easter egg audio
+  const easterEggAudio = new Audio('https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/Lensko%20-%20Let\'s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
+  easterEggAudio.preload = 'auto';
+  easterEggAudio.loop = false;
+  easterEggAudio.volume = 0.75;
 
-  // Store media items
-  let items = [];
+  // Greece video source
+  greeceVideo.src = 'https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/macedonia%20is%20greek.mp4';
+
+  // State
+  let files = [];
   let rotationY = 0;
   let isDragging = false;
   let dragStartX = 0;
-  let dragStartRotation = 0;
+  let lastRotationY = 0;
+  let isPlaying = false;
+  let isMuted = false;
+  let currentIndex = null;
+  let easterEggSequence = [];
+  let easterEggActive = false;
+  let flashCtx;
+  let flashAnimationFrame;
 
-  // Playback vars
-  let currentVideo = null;
+  // Flash canvas setup
+  function setupFlashCanvas() {
+    flashCanvas.width = window.innerWidth;
+    flashCanvas.height = window.innerHeight;
+    flashCanvas.style.position = 'fixed';
+    flashCanvas.style.top = '0';
+    flashCanvas.style.left = '0';
+    flashCanvas.style.zIndex = '1400';
+    flashCanvas.style.pointerEvents = 'none';
+    flashCtx = flashCanvas.getContext('2d');
+  }
+  setupFlashCanvas();
+  window.addEventListener('resize', setupFlashCanvas);
 
-  // Easter egg vars
-  let gPressCount = 0;
-  const gPressRequired = 4;
-  let easterActive = false;
+  // Create carousel item
+  function createCarouselItem(file, index) {
+    const item = document.createElement('div');
+    item.className = 'carousel-item';
+    item.dataset.index = index;
+    item.setAttribute('role', 'listitem');
+    if (file.type.startsWith('image')) {
+      const img = document.createElement('img');
+      img.src = file.url;
+      img.alt = file.name;
+      item.appendChild(img);
+    } else if (file.type.startsWith('video')) {
+      const vid = document.createElement('video');
+      vid.src = file.url;
+      vid.muted = true; // start muted on carousel
+      vid.loop = true;
+      vid.autoplay = true;
+      vid.playsInline = true;
+      vid.style.pointerEvents = 'none';
+      vid.style.userSelect = 'none';
+      item.appendChild(vid);
+    }
+    // click to open playback
+    item.addEventListener('click', (e) => {
+      if (isDragging) return; // prevent open on drag end
+      openPlayback(index);
+    });
+    return item;
+  }
 
-  // Audio element for easter egg
-  const easterAudio = new Audio('https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/Lensko%20-%20Let%27s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
-  easterAudio.preload = 'auto';
-
-  // Utility: place items in circle (carousel)
-  function positionItems() {
-    const itemCount = items.length;
-    const radius = Math.min(window.innerWidth, window.innerHeight) / 2.5;
-    for(let i = 0; i < itemCount; i++) {
-      const angle = (360 / itemCount) * i + rotationY;
-      const rad = angle * (Math.PI / 180);
+  // Update carousel positions & transform
+  function updateCarouselPositions() {
+    const count = files.length;
+    if (count === 0) {
+      carouselContainer.innerHTML = '';
+      return;
+    }
+    const angleStep = 360 / count;
+    files.forEach((file, i) => {
+      const item = carouselContainer.querySelector(`.carousel-item[data-index="${i}"]`);
+      if (!item) return;
+      const angle = angleStep * i + rotationY;
+      // place items in a circle with some Z-depth
+      const radius = 350;
+      const rad = (angle * Math.PI) / 180;
       const x = radius * Math.sin(rad);
       const z = radius * Math.cos(rad);
-      const item = items[i].el;
-      // Place item with 3D transform
-      item.style.transform = `
-        translateX(${x}px)
-        translateZ(${z}px)
-        translateY(${Math.sin(rad * 3) * 20}px)
-        scale(${z / radius + 0.5})
-      `;
+      item.style.transform = `translateX(${x}px) translateZ(${z}px) translateY(-50%)`;
       item.style.zIndex = Math.round(z);
-      // Adjust opacity by z to simulate depth fade
-      item.style.opacity = 0.4 + 0.6 * ((z / radius + 1) / 2);
-      // If hidden by easter egg hide all
-      item.style.display = easterActive ? 'none' : 'block';
-    }
-  }
-
-  // Create new media item element for image/video
-  function createMediaItem(src, type) {
-    const el = document.createElement('div');
-    el.className = 'item';
-    el.tabIndex = 0;
-    let media;
-    if(type === 'video') {
-      media = document.createElement('video');
-      media.src = src;
-      media.muted = false;
-      media.playsInline = true;
-      media.preload = 'auto';
-      media.loop = false;
-      media.style.pointerEvents = 'none'; // disable native controls interaction
-      media.autoplay = false;
-      media.controls = false;
-      el.appendChild(media);
-    } else if(type === 'image') {
-      media = document.createElement('img');
-      media.src = src;
-      el.appendChild(media);
-    }
-    // Attach click handler to open overlay
-    el.addEventListener('click', () => openOverlay(el, media, type));
-    carousel.appendChild(el);
-    items.push({el, media, type});
-    positionItems();
-  }
-
-  // Open overlay with enlarged media
-  function openOverlay(itemEl, media, type) {
-    if (easterActive) return; // block if easter active
-    overlay.innerHTML = '';
-    overlay.classList.add('active');
-    if(type === 'video') {
-      const video = document.createElement('video');
-      video.src = media.src;
-      video.controls = false;
-      video.autoplay = true;
-      video.muted = false;
-      video.style.maxWidth = '85vw';
-      video.style.maxHeight = '80vh';
-      overlay.appendChild(video);
-      currentVideo = video;
-      showVideoControls(true);
-    } else if(type === 'image') {
-      const img = document.createElement('img');
-      img.src = media.src;
-      overlay.appendChild(img);
-      currentVideo = null;
-      showVideoControls(false);
-    }
-    // Animate other items falling down smoothly
-    items.forEach(({el}) => {
-      if(el !== itemEl) el.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
-      if(el !== itemEl) el.style.transform += ' translateY(150vh)';
-      if(el !== itemEl) el.style.opacity = '0';
+      // optionally highlight the item closest to front
+      item.style.filter = z > 0 ? 'brightness(1)' : 'brightness(0.6)';
+      item.style.pointerEvents = z > 0 ? 'auto' : 'none';
     });
   }
 
-  // Close overlay
-  function closeOverlay() {
-    if(!overlay.classList.contains('active')) return;
-    overlay.classList.remove('active');
-    // Reset all items transform and opacity
-    items.forEach(({el}) => {
-      el.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
-      el.style.transform = el.style.transform.replace(/ translateY\(150vh\)/g, '');
-      el.style.opacity = '1';
+  // Initialize carousel DOM
+  function initCarousel() {
+    carouselContainer.innerHTML = '';
+    files.forEach((file, i) => {
+      const item = createCarouselItem(file, i);
+      carouselContainer.appendChild(item);
     });
-    // Stop video if playing
-    if(currentVideo) {
-      currentVideo.pause();
-      currentVideo.src = '';
-      currentVideo = null;
-      showVideoControls(false);
+  }
+
+  // Rotate carousel
+  function rotateCarousel(deltaX) {
+    rotationY = lastRotationY + deltaX * 0.5;
+    updateCarouselPositions();
+  }
+
+  // Handle drag start
+  function onDragStart(e) {
+    isDragging = true;
+    dragStartX = e.clientX || (e.touches && e.touches[0].clientX);
+    lastRotationY = rotationY;
+  }
+  // Handle drag move
+  function onDragMove(e) {
+    if (!isDragging) return;
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    const deltaX = clientX - dragStartX;
+    rotateCarousel(deltaX);
+  }
+  // Handle drag end
+  function onDragEnd(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    // Snap rotation to allow smooth free rotation (no locking)
+    lastRotationY = rotationY;
+  }
+
+  // Open video/image playback
+  function openPlayback(index) {
+    if (index === null || index < 0 || index >= files.length) return;
+    const file = files[index];
+    currentIndex = index;
+    if (file.type.startsWith('image')) {
+      // For images, just fullscreen display
+      showImageFullscreen(file.url);
+    } else if (file.type.startsWith('video')) {
+      openVideoPlayback(file.url);
     }
   }
 
-  // Show or hide video controls
-  function showVideoControls(show) {
-    if(show && currentVideo) {
-      videoControls.classList.add('show');
-    } else {
-      videoControls.classList.remove('show');
+  // Show image fullscreen (simple)
+  function showImageFullscreen(url) {
+    playbackOverlay.classList.add('active');
+    playbackVideo.style.display = 'none';
+
+    // Create or reuse fullscreen img element
+    let img = playbackOverlay.querySelector('img.fullscreen-image');
+    if (!img) {
+      img = document.createElement('img');
+      img.className = 'fullscreen-image';
+      img.style.maxWidth = '90vw';
+      img.style.maxHeight = '90vh';
+      img.style.borderRadius = '12px';
+      img.style.boxShadow = '0 10px 40px rgba(0,0,0,0.8)';
+      playbackOverlay.insertBefore(img, playbackControls);
     }
+    img.src = url;
+    img.style.display = 'block';
+
+    playbackControls.style.display = 'none'; // no controls for images
+
+    playbackOverlay.setAttribute('aria-hidden', 'false');
   }
 
-  // Video controls buttons
-  const btnExit = document.getElementById('btnExit');
-  const btnPlayPause = document.getElementById('btnPlayPause');
-  const btnRewind = document.getElementById('btnRewind');
-  const btnFastForward = document.getElementById('btnFastForward');
-  const btnMute = document.getElementById('btnMute');
-  const playIcon = document.getElementById('playIcon');
-  const pauseIcon = document.getElementById('pauseIcon');
-  const mutedIcon = document.getElementById('mutedIcon');
-  const unmutedIcon = document.getElementById('unmutedIcon');
+  // Open video playback UI
+  function openVideoPlayback(url) {
+    playbackOverlay.classList.add('active');
+    playbackVideo.style.display = 'block';
+    // Remove fullscreen image if exists
+    const img = playbackOverlay.querySelector('img.fullscreen-image');
+    if (img) img.style.display = 'none';
 
-  btnExit.onclick = () => closeOverlay();
-  btnRewind.onclick = () => {
-    if(currentVideo) currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 10);
-  };
-  btnFastForward.onclick = () => {
-    if(currentVideo) currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 10);
-  };
+    playbackVideo.src = url;
+    playbackVideo.muted = isMuted;
+    playbackVideo.play();
+
+    playbackControls.style.display = 'flex';
+
+    playbackOverlay.setAttribute('aria-hidden', 'false');
+    isPlaying = true;
+    updatePlayPauseButton();
+  }
+
+  // Close playback
+  function closePlayback() {
+    playbackOverlay.classList.remove('active');
+    playbackVideo.pause();
+    playbackVideo.src = '';
+    const img = playbackOverlay.querySelector('img.fullscreen-image');
+    if (img) img.style.display = 'none';
+    playbackOverlay.setAttribute('aria-hidden', 'true');
+    currentIndex = null;
+  }
+
+  // Playback controls handlers
+  btnExit.onclick = () => closePlayback();
   btnPlayPause.onclick = () => {
-    if(currentVideo) {
-      if(currentVideo.paused) {
-        currentVideo.play();
-        playIcon.style.display = 'none';
-        pauseIcon.style.display = 'block';
-      } else {
-        currentVideo.pause();
-        playIcon.style.display = 'block';
-        pauseIcon.style.display = 'none';
-      }
+    if (playbackVideo.paused) {
+      playbackVideo.play();
+      isPlaying = true;
+    } else {
+      playbackVideo.pause();
+      isPlaying = false;
     }
+    updatePlayPauseButton();
+  };
+  btnForward.onclick = () => {
+    playbackVideo.currentTime = Math.min(playbackVideo.duration, playbackVideo.currentTime + 10);
+  };
+  btnRewind.onclick = () => {
+    playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 10);
   };
   btnMute.onclick = () => {
-    if(currentVideo) {
-      currentVideo.muted = !currentVideo.muted;
-      if(currentVideo.muted) {
-        mutedIcon.style.display = 'block';
-        unmutedIcon.style.display = 'none';
-      } else {
-        mutedIcon.style.display = 'none';
-        unmutedIcon.style.display = 'block';
-      }
-    }
+    isMuted = !isMuted;
+    playbackVideo.muted = isMuted;
+    updateMuteButton();
   };
 
-  // Update play/pause icons on video events
-  function syncPlayPauseIcons() {
-    if(!currentVideo) return;
-    if(currentVideo.paused) {
-      playIcon.style.display = 'block';
-      pauseIcon.style.display = 'none';
-    } else {
-      playIcon.style.display = 'none';
-      pauseIcon.style.display = 'block';
-    }
+  function updatePlayPauseButton() {
+    btnPlayPause.className = isPlaying ? 'icon-pause' : 'icon-play';
+  }
+  function updateMuteButton() {
+    btnMute.className = isMuted ? 'icon-mute' : 'icon-unmute';
   }
 
-  // Add keyboard ESC to close overlay
-  app.addEventListener('keydown', e => {
-    if(e.key === 'Escape') {
-      closeOverlay();
+  // Keyboard handlers for playback overlay
+  window.addEventListener('keydown', (e) => {
+    if (!playbackOverlay.classList.contains('active')) return;
+    if (e.key === 'Escape') {
+      closePlayback();
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      btnPlayPause.click();
+    } else if (e.key === 'ArrowRight') {
+      btnForward.click();
+    } else if (e.key === 'ArrowLeft') {
+      btnRewind.click();
+    } else if (e.key.toLowerCase() === 'm') {
+      btnMute.click();
     }
   });
 
-  // Drag to rotate carousel horizontally - free spin with inertia
-  let velocity = 0;
-  let momentumID = null;
-  carousel.style.cursor = 'grab';
+  // Prevent scrolling with mouse wheel from triggering clicks or weird behavior
+  carouselContainer.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    // Instead rotate carousel based on wheel delta
+    rotationY += e.deltaY * 0.3;
+    lastRotationY = rotationY;
+    updateCarouselPositions();
+  }, { passive: false });
 
-  carousel.addEventListener('pointerdown', e => {
-    if(e.pointerType !== 'mouse' && e.pointerType !== 'touch') return;
-    isDragging = true;
-    dragStartX = e.clientX;
-    dragStartRotation = rotationY;
-    velocity = 0;
-    carousel.style.cursor = 'grabbing';
-    if(momentumID) {
-      cancelAnimationFrame(momentumID);
-      momentumID = null;
-    }
-  });
+  // Drag handlers for carousel
+  carouselContainer.addEventListener('mousedown', onDragStart);
+  window.addEventListener('mousemove', onDragMove);
+  window.addEventListener('mouseup', onDragEnd);
 
-  window.addEventListener('pointerup', e => {
-    if(isDragging) {
-      isDragging = false;
-      carousel.style.cursor = 'grab';
-      applyMomentum();
-    }
-  });
+  carouselContainer.addEventListener('touchstart', onDragStart);
+  window.addEventListener('touchmove', onDragMove);
+  window.addEventListener('touchend', onDragEnd);
 
-  window.addEventListener('pointercancel', () => {
-    if(isDragging) {
-      isDragging = false;
-      carousel.style.cursor = 'grab';
-      applyMomentum();
-    }
-  });
-
-  window.addEventListener('pointermove', e => {
-    if(!isDragging) return;
-    const deltaX = e.clientX - dragStartX;
-    // Map pixel movement to degrees rotation
-    const rotationDelta = deltaX * 0.3; 
-    rotationY = dragStartRotation + rotationDelta;
-    velocity = rotationDelta - velocity;
-    positionItems();
-  });
-
-  // Momentum after drag ends
-  function applyMomentum() {
-    if(Math.abs(velocity) < 0.1) return;
-    velocity *= 0.95; // friction
-    rotationY += velocity;
-    positionItems();
-    momentumID = requestAnimationFrame(applyMomentum);
+  // Load sample files (replace with your own images/videos URLs or extend)
+  function loadSampleFiles() {
+    files = [
+      { name: 'Windows 7 Desktop', url: 'https://i.imgur.com/zOaOfxZ.jpg', type: 'image/jpeg' },
+      { name: 'Example Video', url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', type: 'video/webm' },
+      { name: 'Windows 7 Wallpaper', url: 'https://wallpaperaccess.com/full/1037861.jpg', type: 'image/jpeg' },
+      { name: 'Demo Video', url: 'https://media.w3.org/2010/05/sintel/trailer.mp4', type: 'video/mp4' }
+    ];
   }
 
-  // Allow mouse wheel to rotate carousel gently
-  app.addEventListener('wheel', e => {
-    e.preventDefault();
-    rotationY += e.deltaY * 0.5;
-    positionItems();
-  }, {passive: false});
+  // Initialize
+  function init() {
+    loadSampleFiles();
+    initCarousel();
+    rotationY = 0;
+    updateCarouselPositions();
+  }
 
-  // Dragging prevents text selection
-  app.addEventListener('selectstart', e => {
-    if(isDragging) e.preventDefault();
-  });
-
-  // File drop support for images/videos
-  app.addEventListener('dragover', e => {
-    e.preventDefault();
-  });
-  app.addEventListener('drop', e => {
-    e.preventDefault();
-    if(easterActive) return; // block during easter egg
-    const dt = e.dataTransfer;
-    if(!dt) return;
-    for(const file of dt.files) {
-      if(file.type.startsWith('image/')) {
-        const url = URL.createObjectURL(file);
-        createMediaItem(url, 'image');
-      } else if(file.type.startsWith('video/')) {
-        const url = URL.createObjectURL(file);
-        createMediaItem(url, 'video');
+  // Easter egg key sequence "G" pressed 4 times fast
+  window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'g') {
+      easterEggSequence.push(Date.now());
+      // Keep last 4 presses in 5 seconds window
+      easterEggSequence = easterEggSequence.filter(t => Date.now() - t < 5000);
+      if (easterEggSequence.length >= 4 && !easterEggActive) {
+        startEasterEgg();
+        easterEggSequence = [];
       }
     }
   });
 
-  // Easter egg: pressing G 4 times triggers effect
-  app.addEventListener('keydown', e => {
-    if(e.key.toLowerCase() === 'g') {
-      if(easterActive) return;
-      gPressCount++;
-      if(gPressCount === gPressRequired) {
-        triggerEasterEgg();
-        gPressCount = 0;
+  // Easter egg flash animation
+  const flashColors = ['red', 'green', 'blue'];
+  function flashSequence(duration = 20000) {
+    let start = null;
+    let idx = 0;
+    function step(timestamp) {
+      if (!start) start = timestamp;
+      const elapsed = timestamp - start;
+      if (elapsed >= duration) {
+        flashCtx.clearRect(0, 0, flashCanvas.width, flashCanvas.height);
+        flashCanvas.style.opacity = 0;
+        return;
       }
-    } else {
-      gPressCount = 0;
+      flashCanvas.style.opacity = 0.8;
+      flashCtx.fillStyle = flashColors[idx % flashColors.length];
+      flashCtx.fillRect(0, 0, flashCanvas.width, flashCanvas.height);
+      idx++;
+      flashAnimationFrame = requestAnimationFrame(step);
     }
+    flashAnimationFrame = requestAnimationFrame(step);
+  }
+
+  function startEasterEgg() {
+    easterEggActive = true;
+    // Hide carousel
+    carouselContainer.style.display = 'none';
+    // Play audio
+    easterEggAudio.currentTime = 0;
+    easterEggAudio.play();
+
+    // Start flashing
+    flashSequence(20000);
+
+    // After 20s end
+    setTimeout(() => {
+      easterEggAudio.pause();
+      carouselContainer.style.display = 'block';
+      easterEggActive = false;
+      cancelAnimationFrame(flashAnimationFrame);
+      flashCanvas.style.opacity = 0;
+      flashCtx.clearRect(0, 0, flashCanvas.width, flashCanvas.height);
+    }, 20000);
+  }
+
+  // Export HTML button - simple alert with placeholder for demo
+  document.getElementById('exportBtn').onclick = () => {
+    alert('Export functionality not implemented yet.');
+  };
+
+  // Greece honor button click handler
+  greeceBtn.addEventListener('click', () => {
+    // Hide everything except overlay
+    document.body.style.overflow = 'hidden';
+    document.body.style.background = 'black';
+    carouselContainer.style.display = 'none';
+    playbackOverlay.classList.remove('active');
+    greeceOverlay.style.pointerEvents = 'auto';
+    greeceOverlay.style.opacity = '1';
+
+    // Play text fade in
+    greeceOverlay.querySelector('p').style.opacity = 0;
+    let textOpacity = 0;
+    const fadeInInterval = setInterval(() => {
+      textOpacity += 0.01;
+      greeceOverlay.querySelector('p').style.opacity = textOpacity;
+      if (textOpacity >= 1) clearInterval(fadeInInterval);
+    }, 30);
+
+    // Play video after 4 seconds delay for text
+    setTimeout(() => {
+      greeceVideo.play();
+    }, 4000);
+
+    // When video ends, revert everything
+    greeceVideo.onended = () => {
+      greeceOverlay.style.opacity = '0';
+      greeceOverlay.style.pointerEvents = 'none';
+      document.body.style.overflow = '';
+      document.body.style.background = '';
+      carouselContainer.style.display = 'block';
+      greeceVideo.pause();
+      greeceVideo.currentTime = 0;
+    };
   });
 
-  // Flash effect colors for 10 seconds
-  const flashColors = ['#ff0000', '#00ff00', '#0000ff'];
-  let flashIndex = 0;
-  let flashInterval = null;
-
-  function startFlash() {
-    flashOverlay.style.display = 'block';
-    flashInterval = setInterval(() => {
-      ctx.fillStyle = flashColors[flashIndex];
-      ctx.fillRect(0, 0, flashOverlay.width, flashOverlay.height);
-      flashIndex = (flashIndex + 1) % flashColors.length;
-    }, 300);
-  }
-  function stopFlash() {
-    clearInterval(flashInterval);
-    flashOverlay.style.display = 'none';
-    ctx.clearRect(0, 0, flashOverlay.width, flashOverlay.height);
-  }
-
-  // Easter egg logic
-  async function triggerEasterEgg() {
-    easterActive = true;
-    // Hide all carousel items
-    items.forEach(({el}) => el.style.display = 'none');
-    closeOverlay();
-
-    startFlash();
-
-    try {
-      await easterAudio.play();
-    } catch(err) {
-      console.warn('Audio play failed:', err);
-    }
-
-    // Wait 10 seconds
-    await new Promise(resolve => setTimeout(resolve, 10000));
-
-    easterAudio.pause();
-    easterAudio.currentTime = 0;
-
-    stopFlash();
-
-    // Show carousel items again
-    items.forEach(({el}) => el.style.display = 'block');
-
-    easterActive = false;
-  }
-
-  // Initialize with a few sample images/videos to start (optional)
-  // Just for demo, comment or remove later
-  /*
-  createMediaItem('https://picsum.photos/400/225?random=1', 'image');
-  createMediaItem('https://picsum.photos/400/225?random=2', 'image');
-  createMediaItem('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', 'video');
-  */
-
-  // Position items initially
-  positionItems();
+  // Initialize everything on page load
+  window.onload = init;
 
 })();
 </script>
+
 </body>
 </html>

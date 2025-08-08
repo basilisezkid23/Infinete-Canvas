@@ -230,7 +230,6 @@
     width: 20px;
     height: 20px;
   }
-
 </style>
 </head>
 <body>
@@ -317,7 +316,6 @@
   let isDragging = false;
   let dragStartX = 0;
   let lastRotationY = 0;
-  let animationFrameId = null;
   const radius = 350;
 
   // Playback state
@@ -329,7 +327,6 @@
   let easterEggActive = false;
   let easterEggTimeout = null;
   let easterEggColors = ['red', 'green', 'blue'];
-  let easterEggColorIndex = 0;
   let easterEggFlashInterval = null;
   const easterEggDuration = 20000; // 20 seconds
 
@@ -451,102 +448,89 @@
   }
 
   // Playback controls handlers
-  playbackExitBtn.addEventListener('click', closePlayback);
+  playbackExitBtn.addEventListener('click', () => {
+    closePlayback();
+  });
+  playbackRewindBtn.addEventListener('click', () => {
+    if (currentVideo) {
+      currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 5);
+    }
+  });
   playbackPlayBtn.addEventListener('click', () => {
     if (!currentVideo) return;
     if (currentVideo.paused) {
       currentVideo.play();
       playIcon.style.display = 'none';
-      pauseIcon.style.display = 'block';
+      pauseIcon.style.display = 'inline';
     } else {
       currentVideo.pause();
-      playIcon.style.display = 'block';
+      playIcon.style.display = 'inline';
       pauseIcon.style.display = 'none';
     }
   });
-  playbackRewindBtn.addEventListener('click', () => {
-    if (!currentVideo) return;
-    currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 5);
-  });
   playbackForwardBtn.addEventListener('click', () => {
-    if (!currentVideo) return;
-    currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 5);
+    if (currentVideo) {
+      currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 5);
+    }
   });
   playbackMuteBtn.addEventListener('click', () => {
     if (!currentVideo) return;
     isMuted = !isMuted;
     currentVideo.muted = isMuted;
-    volumeOnIcon.style.display = isMuted ? 'none' : 'block';
-    volumeOffIcon.style.display = isMuted ? 'block' : 'none';
+    if (isMuted) {
+      volumeOnIcon.style.display = 'none';
+      volumeOffIcon.style.display = 'inline';
+    } else {
+      volumeOnIcon.style.display = 'inline';
+      volumeOffIcon.style.display = 'none';
+    }
   });
 
-  // Clicking an item
-  function onItemClick(e) {
-    if (e.target.closest('.carousel-item')) {
-      const clickedElement = e.target.closest('.carousel-item');
-      const index = items.findIndex(i => i.element === clickedElement);
-      if (index === -1) return;
-
-      // If it's a video, open playback
-      if (items[index].type === 'video') {
-        openItem(index);
+  // Keyboard shortcuts
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closePlayback();
+    }
+    if (e.key.toLowerCase() === 'g') {
+      easterEggKeyCount++;
+      if (easterEggKeyTimeout) clearTimeout(easterEggKeyTimeout);
+      easterEggKeyTimeout = setTimeout(() => {
+        easterEggKeyCount = 0;
+      }, 1000);
+      if (easterEggKeyCount >= 4) {
+        triggerEasterEgg();
+        easterEggKeyCount = 0;
       }
     }
-  }
+  });
 
-  // Drag to rotate carousel
-  function onPointerDown(e) {
-    isDragging = true;
-    dragStartX = e.clientX || e.touches[0].clientX;
-    lastRotationY = rotationY;
-    carouselContainer.style.cursor = 'grabbing';
-  }
-  function onPointerMove(e) {
-    if (!isDragging) return;
-    const currentX = e.clientX || (e.touches && e.touches[0].clientX);
-    if (currentX === undefined) return;
-    const deltaX = currentX - dragStartX;
-    // Sensitivity factor (play around with this)
-    rotationY = lastRotationY + deltaX * 0.3;
-    updateCarouselPositions();
-  }
-  function onPointerUp(e) {
-    isDragging = false;
-    carouselContainer.style.cursor = 'grab';
-  }
-
-  // Prevent opening image on drag end
-  let dragMoved = false;
-  function onPointerDownWithDragFlag(e) {
-    dragMoved = false;
-    onPointerDown(e);
-  }
-  function onPointerMoveWithDragFlag(e) {
-    dragMoved = true;
-    onPointerMove(e);
-  }
-  function onItemClickPreventIfDrag(e) {
-    if (dragMoved) {
-      e.preventDefault();
-      e.stopPropagation();
-      dragMoved = false;
-      return;
-    }
-    onItemClick(e);
-  }
-
-  // Drag & drop to add images/videos
+  // Drag and drop handlers
   function onDragOver(e) {
     e.preventDefault();
+    e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
   }
+
   function onDrop(e) {
     e.preventDefault();
-    const files = e.dataTransfer.files;
-    if (!files || files.length === 0) return;
+    e.stopPropagation();
+
+    let files = [];
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      files = e.dataTransfer.files;
+    } else if (e.dataTransfer.items) {
+      // Firefox fix: use dataTransfer.items
+      files = [];
+      for (let i = 0; i < e.dataTransfer.items.length; i++) {
+        if (e.dataTransfer.items[i].kind === 'file') {
+          const f = e.dataTransfer.items[i].getAsFile();
+          if (f) files.push(f);
+        }
+      }
+    }
+    if (files.length === 0) return;
 
     Array.from(files).forEach(file => {
-      if (!file.type) return;
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
         addItem('image', url);
@@ -557,147 +541,117 @@
     });
   }
 
-  // ESC key to close playback or tribute or instructions
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      if (currentPlayingIndex !== null) {
-        closePlayback();
-      }
-      if (tributeOverlay.style.display === 'flex') {
-        hideTribute();
-      }
-      if (instructionsOverlay.style.display !== 'none') {
-        closeInstructions();
+  carouselContainer.addEventListener('dragover', onDragOver);
+  carouselContainer.addEventListener('drop', onDrop);
+
+  // Drag to rotate carousel
+  carouselContainer.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return; // left mouse only
+    isDragging = true;
+    dragStartX = e.clientX;
+    lastRotationY = rotationY;
+    carouselContainer.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+
+  window.addEventListener('pointerup', (e) => {
+    if (isDragging) {
+      isDragging = false;
+      carouselContainer.style.cursor = 'grab';
+    }
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - dragStartX;
+    const rotationSpeed = 0.3;
+    rotationY = lastRotationY + deltaX * rotationSpeed;
+    updateCarouselPositions();
+  });
+
+  // Click to open playback (only on videos)
+  carouselContainer.addEventListener('click', (e) => {
+    if (e.target.closest('.carousel-item')) {
+      const clickedElement = e.target.closest('.carousel-item');
+      const index = items.findIndex(item => item.element === clickedElement);
+      if (index !== -1 && items[index].type === 'video') {
+        openItem(index);
       }
     }
   });
 
-  // Instructions close
-  function closeInstructions() {
+  // Instructions overlay close
+  closeInstructionsBtn.addEventListener('click', () => {
     instructionsOverlay.style.display = 'none';
-  }
-  closeInstructionsBtn.addEventListener('click', closeInstructions);
-
-  // Easter egg handling
-  window.addEventListener('keydown', e => {
-    if (e.key.toLowerCase() === 'g') {
-      easterEggKeyCount++;
-      clearTimeout(easterEggKeyTimeout);
-      easterEggKeyTimeout = setTimeout(() => {
-        easterEggKeyCount = 0;
-      }, 1000);
-
-      if (easterEggKeyCount >= 4) {
-        easterEggKeyCount = 0;
-        triggerEasterEgg();
-      }
-    }
   });
 
-  function triggerEasterEgg() {
-    if (easterEggActive) return;
-    easterEggActive = true;
-
-    // Stop any playback
-    closePlayback();
-
-    // Hide all items
-    items.forEach(({ element }) => element.style.display = 'none');
-
-    // Start screen flashing colors
-    let flashCount = 0;
-    easterEggFlashInterval = setInterval(() => {
-      document.body.style.backgroundColor = easterEggColors[flashCount % easterEggColors.length];
-      flashCount++;
-    }, 300);
-
-    // Play music
-    easterEggAudio.currentTime = 0;
-    easterEggAudio.play();
-
-    // After duration, stop flash, music and restore UI
-    easterEggTimeout = setTimeout(() => {
-      clearInterval(easterEggFlashInterval);
-      document.body.style.backgroundColor = '';
-      easterEggAudio.pause();
-      easterEggAudio.currentTime = 0;
-      items.forEach(({ element }) => element.style.display = '');
-      easterEggActive = false;
-    }, easterEggDuration);
-  }
-
-  // Tribute button logic
+  // Tribute button
   tributeBtn.addEventListener('click', () => {
-    openTribute();
-  });
-
-  function openTribute() {
-    // Hide other UI
-    closePlayback();
-    instructionsOverlay.style.display = 'none';
-
     tributeOverlay.style.display = 'flex';
     tributeOverlay.setAttribute('aria-hidden', 'false');
     tributeText.style.opacity = '0';
-    tributeText.textContent = '';
-
-    // Animate text appearance
-    const message = "This, to whoever is watching this, is for my country Greece, for Macedonia..";
-    let index = 0;
+    tributeText.textContent = `🇬🇷 This tribute honors Greece: proud, strong, and rich in history.
+May its spirit live forever! 🇬🇷`;
     tributeVideo.src = tributeVideoUrl;
-    tributeVideo.pause();
-    tributeVideo.currentTime = 0;
+    tributeVideo.play();
+    setTimeout(() => {
+      tributeText.style.opacity = '1';
+    }, 100);
+  });
 
-    function revealText() {
-      if (index <= message.length) {
-        tributeText.textContent = message.slice(0, index);
-        tributeText.style.opacity = '1';
-        index++;
-        setTimeout(revealText, 80);
-      } else {
-        tributeVideo.play();
-      }
+  // Clicking outside tribute text or pressing ESC closes tribute
+  tributeOverlay.addEventListener('click', (e) => {
+    if (e.target === tributeOverlay) {
+      closeTribute();
     }
-    revealText();
-  }
+  });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && tributeOverlay.style.display === 'flex') {
+      closeTribute();
+    }
+  });
 
-  function hideTribute() {
+  function closeTribute() {
     tributeOverlay.style.display = 'none';
     tributeOverlay.setAttribute('aria-hidden', 'true');
     tributeVideo.pause();
     tributeVideo.currentTime = 0;
   }
 
-  // Initialization
-  function init() {
-    // Add example Windows 7 wallpaper images (fixed URLs)
-    const wallpaperUrls = [
-      'https://wallpaperaccess.com/full/321672.jpg',
-      'https://wallpapercave.com/wp/wp2921619.jpg',
-      'https://wallpapercave.com/wp/wp2204763.jpg',
-      'https://wallpaperaccess.com/full/1500087.jpg',
-      'https://wallpapercave.com/wp/wp2071327.jpg',
-    ];
-    wallpaperUrls.forEach(url => addItem('image', url));
+  // Easter egg flashing
+  function triggerEasterEgg() {
+    if (easterEggActive) return;
+    easterEggActive = true;
 
-    // Setup drag & drop listeners on carousel container
-    carouselContainer.addEventListener('dragover', onDragOver);
-    carouselContainer.addEventListener('drop', onDrop);
+    closePlayback();
+    items.forEach(({ element }) => element.style.display = 'none');
 
-    // Setup pointer events for dragging
-    carouselContainer.addEventListener('pointerdown', onPointerDownWithDragFlag);
-    window.addEventListener('pointermove', onPointerMoveWithDragFlag);
-    window.addEventListener('pointerup', onPointerUp);
+    let flashCount = 0;
+    easterEggFlashInterval = setInterval(() => {
+      document.body.style.backgroundColor = easterEggColors[flashCount % easterEggColors.length];
+      flashCount++;
+    }, 300);
 
-    // Click handler (with drag prevention)
-    carouselContainer.addEventListener('click', onItemClickPreventIfDrag);
+    easterEggAudio.currentTime = 0;
+    easterEggAudio.play();
 
-    // Init carousel display
-    initCarousel();
+    easterEggTimeout = setTimeout(() => {
+      clearInterval(easterEggFlashInterval);
+      document.body.style.backgroundColor = ''; // reset
+
+      easterEggAudio.pause();
+      easterEggAudio.currentTime = 0;
+
+      items.forEach(({ element }) => element.style.display = '');
+      easterEggActive = false;
+    }, easterEggDuration);
   }
 
-  // Start
-  init();
+  // Initialize
+  initCarousel();
+
+  // Show instructions overlay initially
+  instructionsOverlay.style.display = 'flex';
 
 })();
 </script>

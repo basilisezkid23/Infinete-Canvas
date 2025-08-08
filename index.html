@@ -231,6 +231,33 @@
     height: 20px;
   }
 
+  /* Image preview overlay (lightbox) */
+  #image-preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    cursor: zoom-out;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+  }
+  #image-preview-overlay[aria-hidden="false"] {
+    display: flex;
+  }
+  #preview-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(255,255,255,0.7);
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+  }
+  #image-preview-overlay[aria-hidden="false"] #preview-image {
+    transform: scale(1);
+  }
 </style>
 </head>
 <body>
@@ -241,12 +268,12 @@
     <h2>How to Use</h2>
     <ul>
       <li>Drag and drop images or videos onto the carousel below to add them.</li>
-      <li>Click or tap on an item to open it (videos play with controls).</li>
+      <li>Click or tap on an item to open it (videos play with controls, images open fullscreen).</li>
       <li>Drag left/right on the carousel to rotate through items smoothly.</li>
       <li>Press <strong>G</strong> 4 times quickly for a surprise Easter egg!</li>
       <li>Use the playback controls at the bottom for video control.</li>
       <li>Click the 🇬🇷 Tribute button at the top right for a special message.</li>
-      <li>Press ESC to exit video playback.</li>
+      <li>Press ESC to exit video or image playback or tribute.</li>
     </ul>
     <button id="close-instructions">Got it!</button>
   </div>
@@ -290,6 +317,11 @@
   </button>
 </div>
 
+<!-- Image preview overlay -->
+<div id="image-preview-overlay" aria-hidden="true" role="dialog" tabindex="-1">
+  <img id="preview-image" src="" alt="Image preview" />
+</div>
+
 <script>
 (() => {
   // Elements refs
@@ -310,6 +342,10 @@
   const tributeOverlay = document.getElementById('tribute-overlay');
   const tributeText = document.getElementById('tribute-text');
   const tributeVideo = document.getElementById('tribute-video');
+
+  // Image preview elements
+  const imagePreviewOverlay = document.getElementById('image-preview-overlay');
+  const previewImage = document.getElementById('preview-image');
 
   // Carousel state
   let items = []; // {type: "image"|"video", element, url, rotation}
@@ -399,8 +435,8 @@
       video.src = url;
       video.preload = 'metadata';
       video.muted = true;
-      video.playsInline = true;
-      video.style.pointerEvents = 'none';
+      video.loop = false;
+      video.controls = false;
       item.appendChild(video);
     }
     return item;
@@ -409,28 +445,30 @@
   // Add new item to carousel
   function addItem(type, url) {
     const element = createCarouselItem(type, url);
-    items.push({ type, url, element, rotation: 0 });
-    initCarousel();
+    items.push({ type, element, url, rotation: 0 });
+    carouselContainer.appendChild(element);
+    updateCarouselPositions();
   }
 
-  // Open item playback
+  // Open video playback UI with selected video
   function openItem(index) {
-    if (currentPlayingIndex !== null) return; // one video at a time
+    if (index < 0 || index >= items.length) return;
     const item = items[index];
-    if (!item || item.type !== 'video') return;
+    if (item.type !== 'video') return;
+    if (currentPlayingIndex !== null) closePlayback();
 
     currentPlayingIndex = index;
     currentVideo = item.element.querySelector('video');
-
-    if (!currentVideo) return;
-
     currentVideo.muted = isMuted;
+    currentVideo.controls = false;
     currentVideo.currentTime = 0;
     currentVideo.play();
-    showPlaybackUI(true);
+
+    playbackUI.classList.add('visible');
+    updatePlaybackPlayPauseIcons();
   }
 
-  // Close playback
+  // Close video playback UI
   function closePlayback() {
     if (currentVideo) {
       currentVideo.pause();
@@ -438,127 +476,112 @@
     }
     currentPlayingIndex = null;
     currentVideo = null;
-    showPlaybackUI(false);
+    playbackUI.classList.remove('visible');
   }
 
-  // Show/hide playback UI
-  function showPlaybackUI(show) {
-    if (show) {
-      playbackUI.classList.add('visible');
-    } else {
-      playbackUI.classList.remove('visible');
-    }
-  }
-
-  // Playback controls handlers
-  playbackExitBtn.addEventListener('click', closePlayback);
-  playbackPlayBtn.addEventListener('click', () => {
+  // Toggle play/pause video
+  function togglePlayPause() {
     if (!currentVideo) return;
     if (currentVideo.paused) {
       currentVideo.play();
-      playIcon.style.display = 'none';
-      pauseIcon.style.display = 'inline';
     } else {
       currentVideo.pause();
+    }
+    updatePlaybackPlayPauseIcons();
+  }
+
+  // Update play/pause icons based on video state
+  function updatePlaybackPlayPauseIcons() {
+    if (!currentVideo) return;
+    if (currentVideo.paused) {
       playIcon.style.display = 'inline';
       pauseIcon.style.display = 'none';
+    } else {
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = 'inline';
     }
-  });
-  playbackRewindBtn.addEventListener('click', () => {
+  }
+
+  // Rewind video 5 seconds
+  function rewindVideo() {
     if (!currentVideo) return;
     currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 5);
-  });
-  playbackForwardBtn.addEventListener('click', () => {
+  }
+
+  // Fast forward video 5 seconds
+  function forwardVideo() {
     if (!currentVideo) return;
     currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 5);
-  });
-  playbackMuteBtn.addEventListener('click', () => {
+  }
+
+  // Toggle mute/unmute video
+  function toggleMute() {
     if (!currentVideo) return;
     isMuted = !isMuted;
     currentVideo.muted = isMuted;
     volumeOnIcon.style.display = isMuted ? 'none' : 'inline';
     volumeOffIcon.style.display = isMuted ? 'inline' : 'none';
-  });
+  }
 
-  // Keyboard controls for playback (ESC to exit)
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && currentPlayingIndex !== null) {
-      closePlayback();
-    }
-  });
+  // Tribute button open/close
+  function openTribute() {
+    tributeOverlay.style.display = 'flex';
+    tributeOverlay.setAttribute('aria-hidden', 'false');
+    tributeText.style.opacity = '0';
+    tributeText.textContent = "To Greece, from the bottom of our hearts, your legacy lives on...";
+    tributeVideo.src = tributeVideoUrl;
+    tributeVideo.play();
+    tributeVideo.style.display = 'block';
+    tributeVideo.setAttribute('aria-hidden', 'false');
 
-  // Carousel drag rotation logic
-  carouselContainer.addEventListener('mousedown', e => {
-    isDragging = true;
-    dragStartX = e.clientX;
-    lastRotationY = rotationY;
-    carouselContainer.style.cursor = 'grabbing';
-    e.preventDefault();
-  });
-  document.addEventListener('mouseup', e => {
-    if (isDragging) {
-      isDragging = false;
-      carouselContainer.style.cursor = 'grab';
-    }
-  });
-  document.addEventListener('mousemove', e => {
-    if (!isDragging) return;
-    const deltaX = e.clientX - dragStartX;
-    rotationY = lastRotationY + deltaX * 0.3; // sensitivity
-    updateCarouselPositions();
-  });
+    // Fade in tribute text
+    setTimeout(() => {
+      tributeText.style.opacity = '1';
+    }, 100);
 
-  // Touch support for carousel drag
-  carouselContainer.addEventListener('touchstart', e => {
-    if (e.touches.length === 1) {
-      isDragging = true;
-      dragStartX = e.touches[0].clientX;
-      lastRotationY = rotationY;
-    }
-  }, { passive: true });
-  document.addEventListener('touchend', e => {
-    isDragging = false;
-  });
-  document.addEventListener('touchmove', e => {
-    if (!isDragging) return;
-    if (e.touches.length !== 1) return;
-    const deltaX = e.touches[0].clientX - dragStartX;
-    rotationY = lastRotationY + deltaX * 0.3;
-    updateCarouselPositions();
-  }, { passive: true });
+    document.body.style.overflow = 'hidden'; // Prevent background scroll
+  }
+  function closeTribute() {
+    tributeOverlay.style.display = 'none';
+    tributeOverlay.setAttribute('aria-hidden', 'true');
+    tributeVideo.pause();
+    tributeVideo.currentTime = 0;
+    tributeVideo.style.display = 'none';
+    tributeVideo.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = ''; // Restore scroll
+  }
 
-  // Click/tap on carousel item to open playback (videos only)
-  carouselContainer.addEventListener('click', e => {
-    let target = e.target;
-    while (target && !target.classList.contains('carousel-item')) {
-      target = target.parentElement;
-    }
-    if (!target) return;
-    const idx = items.findIndex(i => i.element === target);
-    if (idx === -1) return;
-    if (items[idx].type === 'video') {
-      openItem(idx);
-    }
-  });
+  // Open image preview overlay with smooth animation
+  function openImagePreview(url) {
+    previewImage.src = url;
+    imagePreviewOverlay.style.opacity = '0';
+    imagePreviewOverlay.style.display = 'flex';
+    imagePreviewOverlay.setAttribute('aria-hidden', 'false');
+    previewImage.style.transform = 'scale(0.8)';
+    document.body.style.overflow = 'hidden'; // prevent scrolling
 
-  // Drag & Drop handlers - FIXED with preventDefault & stopPropagation to avoid browser opening new tabs
-  // Also global dragover & drop prevent default to stop any native behavior outside drop zone
-  window.addEventListener('dragover', e => e.preventDefault());
-  window.addEventListener('drop', e => e.preventDefault());
+    // Animate in
+    requestAnimationFrame(() => {
+      imagePreviewOverlay.style.opacity = '1';
+      previewImage.style.transform = 'scale(1)';
+    });
+  }
+  // Close image preview overlay
+  function closeImagePreview() {
+    previewImage.style.transform = 'scale(0.8)';
+    imagePreviewOverlay.style.opacity = '0';
+    imagePreviewOverlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
 
-  carouselContainer.addEventListener('dragover', e => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  });
-  carouselContainer.addEventListener('drop', e => {
-    e.preventDefault();
-    e.stopPropagation();
+    setTimeout(() => {
+      imagePreviewOverlay.style.display = 'none';
+      previewImage.src = '';
+    }, 300);
+  }
 
-    const files = e.dataTransfer.files;
-    if (!files || files.length === 0) return;
-
-    Array.from(files).forEach(file => {
-      if (!file.type) return;
+  // Drag & drop file handling
+  function handleFiles(files) {
+    for (const file of files) {
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
         addItem('image', url);
@@ -566,50 +589,79 @@
         const url = URL.createObjectURL(file);
         addItem('video', url);
       }
-    });
-  });
+    }
+  }
 
-  // Keyboard easter egg: press G 4 times quickly to activate
-  document.addEventListener('keydown', e => {
-    if (e.key.toLowerCase() === 'g') {
-      easterEggKeyCount++;
-      if (easterEggKeyTimeout) clearTimeout(easterEggKeyTimeout);
-      easterEggKeyTimeout = setTimeout(() => {
-        easterEggKeyCount = 0;
-      }, 1000);
-      if (easterEggKeyCount === 4) {
-        easterEggKeyCount = 0;
-        triggerEasterEgg();
-      }
+  // Mouse/touch drag for carousel rotation
+  function onDragStart(e) {
+    if (e.target.closest('#playback-ui') || e.target.closest('#tribute-overlay') || e.target.closest('#image-preview-overlay')) {
+      return; // block drag when overlays active
+    }
+    isDragging = true;
+    dragStartX = e.clientX || e.touches[0].clientX;
+    lastRotationY = rotationY;
+    carouselContainer.style.cursor = 'grabbing';
+    e.preventDefault();
+  }
+  function onDragMove(e) {
+    if (!isDragging) return;
+    const x = e.clientX || e.touches[0].clientX;
+    const deltaX = x - dragStartX;
+    rotationY = lastRotationY + deltaX * 0.4;
+    updateCarouselPositions();
+  }
+  function onDragEnd(e) {
+    isDragging = false;
+    carouselContainer.style.cursor = 'grab';
+  }
+
+  // Carousel click handler (open video or image)
+  carouselContainer.addEventListener('click', e => {
+    if (isDragging) return; // prevent click if dragging
+
+    let target = e.target;
+    while (target && !target.classList.contains('carousel-item')) {
+      target = target.parentElement;
+    }
+    if (!target) return;
+
+    const idx = items.findIndex(i => i.element === target);
+    if (idx === -1) return;
+
+    const item = items[idx];
+    if (item.type === 'video') {
+      openItem(idx);
+    } else if (item.type === 'image') {
+      openImagePreview(item.url);
     }
   });
 
-  // Easter egg function
-  function triggerEasterEgg() {
-    if (easterEggActive) return; // Already active
+  // Playback UI button handlers
+  playbackExitBtn.addEventListener('click', closePlayback);
+  playbackRewindBtn.addEventListener('click', rewindVideo);
+  playbackPlayBtn.addEventListener('click', togglePlayPause);
+  playbackForwardBtn.addEventListener('click', forwardVideo);
+  playbackMuteBtn.addEventListener('click', toggleMute);
 
-    easterEggActive = true;
+  // Playback video pause/play events update icons
+  playbackUI.addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('keydown', e => {
+    if (!currentVideo) return;
+    if (e.key === ' ') {
+      e.preventDefault();
+      togglePlayPause();
+    }
+  });
 
-    // Flash body background colors cycling
-    easterEggFlashInterval = setInterval(() => {
-      document.body.style.backgroundColor = easterEggColors[easterEggColorIndex];
-      easterEggColorIndex = (easterEggColorIndex + 1) % easterEggColors.length;
-    }, 300);
+  // Video pause/play state changes update play/pause icons
+  document.addEventListener('play', e => {
+    if (e.target === currentVideo) updatePlaybackPlayPauseIcons();
+  }, true);
+  document.addEventListener('pause', e => {
+    if (e.target === currentVideo) updatePlaybackPlayPauseIcons();
+  }, true);
 
-    // Play audio
-    easterEggAudio.play();
-
-    // Stop after duration
-    setTimeout(() => {
-      clearInterval(easterEggFlashInterval);
-      document.body.style.backgroundColor = '';
-      easterEggActive = false;
-      easterEggAudio.pause();
-      easterEggAudio.currentTime = 0;
-    }, easterEggDuration);
-  }
-
-  // Tribute button toggles tribute overlay
+  // Tribute button
   tributeBtn.addEventListener('click', () => {
     if (tributeOverlay.style.display === 'flex') {
       closeTribute();
@@ -618,52 +670,119 @@
     }
   });
 
-  function openTribute() {
-    tributeOverlay.style.display = 'flex';
-    tributeOverlay.setAttribute('aria-hidden', 'false');
-    tributeText.style.opacity = '0';
-    tributeText.textContent = "Greece forever 🇬🇷 — the cradle of democracy and culture.";
-    setTimeout(() => {
-      tributeText.style.opacity = '1';
-    }, 100);
-
-    tributeVideo.src = tributeVideoUrl;
-    tributeVideo.volume = 0.3;
-    tributeVideo.play();
-  }
-
-  function closeTribute() {
-    tributeOverlay.style.display = 'none';
-    tributeOverlay.setAttribute('aria-hidden', 'true');
-    tributeVideo.pause();
-    tributeVideo.currentTime = 0;
-    tributeVideo.src = '';
-  }
-
-  tributeOverlay.addEventListener('click', e => {
-    if (e.target === tributeOverlay) {
-      closeTribute();
+  // Close tribute with ESC
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (tributeOverlay.style.display === 'flex') {
+        closeTribute();
+      }
+      if (currentPlayingIndex !== null) {
+        closePlayback();
+      }
+      if (imagePreviewOverlay.style.display === 'flex') {
+        closeImagePreview();
+      }
     }
   });
 
-  // Instructions overlay close button
+  // Close image preview on overlay click
+  imagePreviewOverlay.addEventListener('click', closeImagePreview);
+
+  // Drag & drop listeners
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    if (e.dataTransfer.files.length) {
+      handleFiles(e.dataTransfer.files);
+    }
+  });
+
+  // Carousel drag handlers
+  carouselContainer.addEventListener('mousedown', onDragStart);
+  window.addEventListener('mousemove', onDragMove);
+  window.addEventListener('mouseup', onDragEnd);
+  carouselContainer.addEventListener('touchstart', onDragStart, {passive: false});
+  window.addEventListener('touchmove', onDragMove, {passive: false});
+  window.addEventListener('touchend', onDragEnd);
+
+  // Easter egg key press sequence for 'G' 4 times quickly
+  window.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'g') {
+      easterEggKeyCount++;
+      if (easterEggKeyTimeout) clearTimeout(easterEggKeyTimeout);
+      easterEggKeyTimeout = setTimeout(() => {
+        easterEggKeyCount = 0;
+      }, 1500);
+      if (easterEggKeyCount === 4) {
+        easterEggKeyCount = 0;
+        toggleEasterEgg();
+      }
+    }
+  });
+
+  // Easter egg toggle
+  function toggleEasterEgg() {
+    if (easterEggActive) {
+      disableEasterEgg();
+    } else {
+      enableEasterEgg();
+    }
+  }
+  function enableEasterEgg() {
+    easterEggActive = true;
+    easterEggAudio.play();
+    startEasterEggFlash();
+    setTimeout(disableEasterEgg, easterEggDuration);
+  }
+  function disableEasterEgg() {
+    easterEggActive = false;
+    easterEggAudio.pause();
+    easterEggAudio.currentTime = 0;
+    stopEasterEggFlash();
+    // Reset carousel styles
+    items.forEach(item => {
+      item.element.style.transition = 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease';
+      item.element.style.filter = '';
+      item.element.style.color = '';
+      item.element.style.background = '';
+    });
+    updateCarouselPositions();
+  }
+  function startEasterEggFlash() {
+    easterEggFlashInterval = setInterval(() => {
+      items.forEach(item => {
+        const color = easterEggColors[easterEggColorIndex];
+        item.element.style.filter = `drop-shadow(0 0 8px ${color})`;
+        item.element.style.borderColor = color;
+      });
+      easterEggColorIndex = (easterEggColorIndex + 1) % easterEggColors.length;
+    }, 350);
+  }
+  function stopEasterEggFlash() {
+    clearInterval(easterEggFlashInterval);
+    easterEggFlashInterval = null;
+  }
+
+  // Close instructions overlay
   closeInstructionsBtn.addEventListener('click', () => {
     instructionsOverlay.style.display = 'none';
   });
 
-  // Initial setup
-  // Add a nice welcome image and a sample video item for demo
-  addItem('image', 'https://upload.wikimedia.org/wikipedia/commons/5/57/Windows_7_Logo.svg');
-  addItem('video', 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm');
+  // Initial load demo items (replace with your own as needed)
+  function loadDemoItems() {
+    // Example images/videos to demo carousel
+    addItem('image', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Windows_logo_-_2021.svg/600px-Windows_logo_-_2021.svg.png');
+    addItem('image', 'https://upload.wikimedia.org/wikipedia/commons/5/59/Windows_7_Logo.svg');
+    addItem('video', 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm');
+  }
 
-  // Initialize carousel container div
+  // Initialize
+  loadDemoItems();
   initCarousel();
 
   // Initial cursor style
   carouselContainer.style.cursor = 'grab';
-
 })();
 </script>
-
 </body>
 </html>

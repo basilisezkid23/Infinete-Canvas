@@ -3,664 +3,685 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Windows 7 Style Infinite Canvas</title>
+<title>Windows 7 Style Infinite Carousel Canvas</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap');
 
-  /* Reset & basics */
+  :root {
+    --bg-color: #1a1a1a;
+    --carousel-radius: 350px;
+    --carousel-item-width: 260px;
+    --carousel-item-height: 180px;
+    --aero-bg: rgba(255 255 255 / 0.15);
+    --control-icon-color: white;
+    --control-bg: rgba(0 0 0 / 0.4);
+    --transition-time: 0.6s;
+  }
+
   * {
     box-sizing: border-box;
   }
+
   body, html {
-    margin: 0; padding: 0; height: 100%; overflow: hidden;
-    background: linear-gradient(180deg, #f2f6fb 0%, #f7f7f9 100%);
+    margin: 0; padding: 0;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a0a 0%, #222 100%);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    user-select: none;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+    color: white;
   }
 
-  /* Top Toolbar */
-  .toolbar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 40px;
-    background: rgba(255 255 255 / 0.8);
+  #app {
+    height: 100vh;
     display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 12px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-    backdrop-filter: blur(8px);
-    z-index: 999;
+    flex-direction: column;
+    background: var(--bg-color);
+    position: relative;
   }
-  .btn {
-    background: #fff;
-    border: 1.5px solid rgba(0,0,0,0.15);
+
+  header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 20px;
+    z-index: 20;
+  }
+  #tribute-btn {
+    background: var(--aero-bg);
+    border: 1.5px solid rgba(255 255 255 / 0.3);
     border-radius: 5px;
-    padding: 5px 12px;
-    margin-right: 8px;
-    font-weight: 600;
-    font-size: 13px;
-    color: #222;
+    color: white;
+    font-size: 0.85rem;
     cursor: pointer;
+    padding: 5px 10px;
     user-select: none;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
+    backdrop-filter: blur(12px);
+    transition: background 0.3s ease;
   }
-  .btn:hover {
-    background: #e6eaff;
-    box-shadow: 0 0 8px #6c7ae0aa;
-  }
-  .btn:active {
-    transform: translateY(1px);
+  #tribute-btn:hover {
+    background: rgba(255 255 255 / 0.3);
   }
 
-  /* Greece honor button top right */
-  #greeceBtn {
-    margin-left: auto;
-    background: #0033a0;
-    color: #fff;
-    font-weight: 700;
-    font-size: 12px;
-    padding: 5px 14px;
-    border: none;
-    border-radius: 6px;
-    box-shadow: 0 0 12px #0033a0aa;
-    user-select: none;
-  }
-  #greeceBtn:hover {
-    background: #002070;
-  }
-
-  /* Centered carousel container */
-  #carousel-container {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: 700px; height: 500px;
-    margin-left: -350px;
-    margin-top: -250px;
+  main {
+    flex: 1;
     perspective: 1200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  #carousel-container {
+    width: 100%;
+    max-width: 1000px;
+    height: 300px;
+    position: relative;
+    transform-style: preserve-3d;
     user-select: none;
   }
 
-  /* Carousel */
   #carousel {
     width: 100%;
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.7s cubic-bezier(0.4,0,0.2,1);
+    transition: transform var(--transition-time) cubic-bezier(0.4, 0, 0.2, 1);
     cursor: grab;
   }
   #carousel:active {
     cursor: grabbing;
-    transition: none;
   }
 
-  /* Each item */
   .carousel-item {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 240px;
-    height: 160px;
-    margin: -80px -120px;
+    width: var(--carousel-item-width);
+    height: var(--carousel-item-height);
+    margin: calc(var(--carousel-item-height) / -2) calc(var(--carousel-item-width) / -2);
     border-radius: 12px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-    background: rgba(255 255 255 / 0.85);
-    backdrop-filter: saturate(180%) blur(12px);
-    border: 1px solid rgba(255 255 255 / 0.5);
+    box-shadow:
+      0 8px 15px rgba(0,0,0,0.5),
+      inset 0 0 12px rgba(255,255,255,0.1);
+    background: var(--aero-bg);
+    backdrop-filter: blur(16px);
     overflow: hidden;
-    transition: box-shadow 0.3s ease;
+    transition:
+      transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.4s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   .carousel-item img,
   .carousel-item video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 100%;
+    max-height: 100%;
     border-radius: 12px;
+    pointer-events: none;
+    user-select: none;
+    filter: drop-shadow(0 0 5px rgba(0,0,0,0.4));
   }
   .carousel-item video {
     background: black;
   }
-  .carousel-item:hover {
-    box-shadow: 0 10px 30px rgba(60,60,100,0.3);
+  .carousel-item.active {
+    box-shadow:
+      0 16px 35px rgba(0,0,0,0.8),
+      inset 0 0 30px rgba(255,255,255,0.15);
+    z-index: 5;
   }
 
-  /* Playback overlay */
-  #playbackOverlay {
+  /* Playback UI */
+  #playback-ui {
     position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--aero-bg);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
+    padding: 8px 20px;
+    gap: 18px;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.5s ease;
-    z-index: 1500;
+    transition: opacity 0.4s ease;
+    z-index: 30;
+    user-select: none;
+    width: 350px;
   }
-  #playbackOverlay.active {
+  #playback-ui.visible {
     opacity: 1;
     pointer-events: auto;
   }
-  #playbackOverlay video {
-    max-width: 90vw;
-    max-height: 70vh;
-    border-radius: 10px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    background: black;
-  }
 
-  /* Playback controls */
-  #playbackControls {
-    margin-top: 10px;
-    width: 90vw;
-    max-width: 700px;
+  .control-btn {
+    background: var(--control-bg);
+    border: none;
+    border-radius: 6px;
+    color: var(--control-icon-color);
+    cursor: pointer;
+    font-size: 22px;
+    width: 36px;
+    height: 36px;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 18px;
-    background: rgba(255 255 255 / 0.1);
-    border-radius: 10px;
-    padding: 8px 12px;
-    backdrop-filter: saturate(200%) blur(20px);
+    user-select: none;
+    transition: background 0.3s ease;
   }
-  #playbackControls button {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    transition: color 0.2s ease;
-  }
-  #playbackControls button:hover {
-    color: #6c7ae0;
+  .control-btn:hover {
+    background: rgba(255 255 255 / 0.25);
   }
 
-  /* Icons from Unicode and some ASCII for simplicity */
-  .icon-play::before { content: "▶"; }
-  .icon-pause::before { content: "⏸"; }
-  .icon-forward::before { content: "⏩"; }
-  .icon-rewind::before { content: "⏪"; }
-  .icon-exit::before { content: "✕"; }
-  .icon-mute::before { content: "🔇"; }
-  .icon-unmute::before { content: "🔊"; }
+  /* Simple icons (not Microsoft) */
+  .control-btn svg {
+    fill: currentColor;
+    width: 20px;
+    height: 20px;
+  }
 
-  /* Flash colors for Easter egg */
-  #flashOverlay {
+  /* Tribute overlay */
+  #tribute-overlay {
     position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 1400;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  /* Greece honor overlay */
-  #greeceOverlay {
-    position: fixed;
-    inset: 0;
+    top: 0; left: 0; right:0; bottom: 0;
     background: black;
     color: white;
-    font-size: 22px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    font-size: 2.2rem;
+    font-weight: 600;
     text-align: center;
-    padding: 0 20px;
     opacity: 0;
     pointer-events: none;
-    user-select: none;
-    z-index: 2000;
-    transition: opacity 3s ease;
+    transition: opacity 1s ease;
+    z-index: 100;
+    padding: 20px;
   }
-  #greeceOverlay p {
-    margin-bottom: 24px;
+  #tribute-text {
     max-width: 700px;
-    line-height: 1.5;
-    white-space: pre-line;
+    margin-bottom: 20px;
+    opacity: 0;
+    transition: opacity 4s ease;
   }
-  #greeceOverlay video {
-    max-width: 80vw;
-    max-height: 60vh;
-    border-radius: 10px;
-    box-shadow: 0 10px 40px rgba(255,255,255,0.8);
+  #tribute-video {
+    max-width: 90vw;
+    max-height: 55vh;
+    border-radius: 15px;
+    box-shadow: 0 0 25px rgba(255 255 255 / 0.8);
+    display: none;
   }
-
 </style>
 </head>
 <body>
-
-  <div class="toolbar">
-    <button id="exportBtn" class="btn">Export HTML</button>
-    <button id="greeceBtn" title="For my country Greece">🇬🇷 Honor Greece</button>
+<div id="app">
+  <header>
+    <button id="tribute-btn" title="Tribute to Greece">🇬🇷 Tribute</button>
+  </header>
+  <main>
+    <div id="carousel-container" tabindex="0" aria-label="Infinite Windows 7 style carousel"></div>
+  </main>
+  <div id="playback-ui" aria-label="Video playback controls" role="region">
+    <button class="control-btn" id="btn-exit" title="Exit playback" aria-label="Exit playback">
+      <!-- X icon -->
+      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="control-btn" id="btn-rewind" title="Rewind 5s" aria-label="Rewind 5 seconds">
+      <!-- rewind icon -->
+      <svg viewBox="0 0 24 24"><path d="M11 19L2 12l9-7v14zM22 19l-9-7 9-7v14z" fill="currentColor"/></svg>
+    </button>
+    <button class="control-btn" id="btn-play" title="Play/Pause" aria-label="Play or pause">
+      <!-- play icon -->
+      <svg viewBox="0 0 24 24" id="play-icon"><path d="M8 5v14l11-7z"/></svg>
+      <svg viewBox="0 0 24 24" id="pause-icon" style="display:none;"><path d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>
+    </button>
+    <button class="control-btn" id="btn-forward" title="Forward 5s" aria-label="Forward 5 seconds">
+      <!-- forward icon -->
+      <svg viewBox="0 0 24 24"><path d="M13 5l9 7-9 7V5zM2 5l9 7-9 7V5z" fill="currentColor"/></svg>
+    </button>
+    <button class="control-btn" id="btn-mute" title="Mute/Unmute" aria-label="Mute or unmute">
+      <!-- mute icon -->
+      <svg viewBox="0 0 24 24" id="mute-icon"><path d="M16 7h-1.5L12 5.5v13l2.5-2.5H16l3-3v-3l-3-3z"/></svg>
+      <svg viewBox="0 0 24 24" id="unmute-icon" style="display:none;"><path d="M19 12a7 7 0 0 1-7 7v-3l-3 3V8l3 3V8a7 7 0 0 1 7 7z"/></svg>
+    </button>
   </div>
 
-  <div id="carousel-container" aria-label="Files carousel" role="list"></div>
-
-  <!-- Playback overlay -->
-  <div id="playbackOverlay" aria-modal="true" role="dialog" aria-hidden="true">
-    <video id="playbackVideo" playsinline></video>
-    <div id="playbackControls">
-      <button id="btnExit" aria-label="Exit video playback" class="icon-exit"></button>
-      <button id="btnRewind" aria-label="Rewind 10 seconds" class="icon-rewind"></button>
-      <button id="btnPlayPause" aria-label="Play/Pause" class="icon-play"></button>
-      <button id="btnForward" aria-label="Fast forward 10 seconds" class="icon-forward"></button>
-      <button id="btnMute" aria-label="Mute/Unmute" class="icon-unmute"></button>
-    </div>
+  <div id="tribute-overlay" role="dialog" aria-modal="true">
+    <div id="tribute-text"></div>
+    <video id="tribute-video" controls></video>
   </div>
-
-  <!-- Flash overlay for easter egg -->
-  <canvas id="flashOverlay"></canvas>
-
-  <!-- Greece honor overlay -->
-  <div id="greeceOverlay" aria-live="assertive">
-    <p>This, to whoever is watching this, is for my country Greece, for Macedonia..</p>
-    <video id="greeceVideo" controls></video>
-  </div>
+</div>
 
 <script>
 (() => {
-  // Globals
+  // Setup core variables
   const carouselContainer = document.getElementById('carousel-container');
-  const playbackOverlay = document.getElementById('playbackOverlay');
-  const playbackVideo = document.getElementById('playbackVideo');
-  const playbackControls = document.getElementById('playbackControls');
-  const btnExit = document.getElementById('btnExit');
-  const btnPlayPause = document.getElementById('btnPlayPause');
-  const btnForward = document.getElementById('btnForward');
-  const btnRewind = document.getElementById('btnRewind');
-  const btnMute = document.getElementById('btnMute');
-  const flashCanvas = document.getElementById('flashOverlay');
-  const greeceBtn = document.getElementById('greeceBtn');
-  const greeceOverlay = document.getElementById('greeceOverlay');
-  const greeceVideo = document.getElementById('greeceVideo');
+  const playbackUI = document.getElementById('playback-ui');
+  const btnExit = document.getElementById('btn-exit');
+  const btnPlay = document.getElementById('btn-play');
+  const btnMute = document.getElementById('btn-mute');
+  const btnForward = document.getElementById('btn-forward');
+  const btnRewind = document.getElementById('btn-rewind');
+  const playIcon = document.getElementById('play-icon');
+  const pauseIcon = document.getElementById('pause-icon');
+  const muteIcon = document.getElementById('mute-icon');
+  const unmuteIcon = document.getElementById('unmute-icon');
+  const tributeBtn = document.getElementById('tribute-btn');
+  const tributeOverlay = document.getElementById('tribute-overlay');
+  const tributeText = document.getElementById('tribute-text');
+  const tributeVideo = document.getElementById('tribute-video');
 
-  // Easter egg audio
-  const easterEggAudio = new Audio('https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/Lensko%20-%20Let\'s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
-  easterEggAudio.preload = 'auto';
-  easterEggAudio.loop = false;
-  easterEggAudio.volume = 0.75;
-
-  // Greece video source
-  greeceVideo.src = 'https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/macedonia%20is%20greek.mp4';
-
-  // State
   let files = [];
   let rotationY = 0;
   let isDragging = false;
   let dragStartX = 0;
-  let lastRotationY = 0;
-  let isPlaying = false;
-  let isMuted = false;
-  let currentIndex = null;
-  let easterEggSequence = [];
+  let lastX = 0;
+  let currentIndex = 0;
+  let videoPlaying = null;
   let easterEggActive = false;
-  let flashCtx;
-  let flashAnimationFrame;
+  let easterEggTimeout = null;
+  let keySequence = [];
+  const easterEggCode = ['g', 'g', 'g', 'g'];
 
-  // Flash canvas setup
-  function setupFlashCanvas() {
-    flashCanvas.width = window.innerWidth;
-    flashCanvas.height = window.innerHeight;
-    flashCanvas.style.position = 'fixed';
-    flashCanvas.style.top = '0';
-    flashCanvas.style.left = '0';
-    flashCanvas.style.zIndex = '1400';
-    flashCanvas.style.pointerEvents = 'none';
-    flashCtx = flashCanvas.getContext('2d');
+  // Load sample files - fixed wallpaper URLs
+  function loadSampleFiles() {
+    files = [
+      { name: 'Windows 7 Desktop', url: 'https://i.imgur.com/zOaOfxZ.jpg', type: 'image/jpeg' },
+      { name: 'Example Video', url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', type: 'video/webm' },
+      { name: 'Windows 7 Wallpaper', url: 'https://wallpapercave.com/wp/wp1842825.jpg', type: 'image/jpeg' },
+      { name: 'Demo Video', url: 'https://media.w3.org/2010/05/sintel/trailer.mp4', type: 'video/mp4' }
+    ];
   }
-  setupFlashCanvas();
-  window.addEventListener('resize', setupFlashCanvas);
 
-  // Create carousel item
+  // Helpers: create carousel items (image or video)
   function createCarouselItem(file, index) {
-    const item = document.createElement('div');
-    item.className = 'carousel-item';
-    item.dataset.index = index;
-    item.setAttribute('role', 'listitem');
+    const div = document.createElement('div');
+    div.className = 'carousel-item';
+    div.dataset.index = index;
+
     if (file.type.startsWith('image')) {
       const img = document.createElement('img');
       img.src = file.url;
-      img.alt = file.name;
-      item.appendChild(img);
+      img.alt = file.name || 'Image';
+      div.appendChild(img);
     } else if (file.type.startsWith('video')) {
-      const vid = document.createElement('video');
-      vid.src = file.url;
-      vid.muted = true; // start muted on carousel
-      vid.loop = true;
-      vid.autoplay = true;
-      vid.playsInline = true;
-      vid.style.pointerEvents = 'none';
-      vid.style.userSelect = 'none';
-      item.appendChild(vid);
+      const video = document.createElement('video');
+      video.src = file.url;
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+      video.loop = false;
+      video.controls = false; // We'll use custom controls
+      video.style.userSelect = 'none';
+      div.appendChild(video);
     }
-    // click to open playback
-    item.addEventListener('click', (e) => {
-      if (isDragging) return; // prevent open on drag end
-      openPlayback(index);
-    });
-    return item;
+    return div;
   }
 
-  // Update carousel positions & transform
+  // Position carousel items in 3D circle
   function updateCarouselPositions() {
-    const count = files.length;
-    if (count === 0) {
-      carouselContainer.innerHTML = '';
-      return;
-    }
-    const angleStep = 360 / count;
-    files.forEach((file, i) => {
-      const item = carouselContainer.querySelector(`.carousel-item[data-index="${i}"]`);
-      if (!item) return;
+    const N = files.length;
+    if (N === 0) return;
+
+    const angleStep = 360 / N;
+    const radius = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--carousel-radius'));
+
+    const items = carouselContainer.querySelectorAll('.carousel-item');
+    items.forEach((item, i) => {
       const angle = angleStep * i + rotationY;
-      // place items in a circle with some Z-depth
-      const radius = 350;
-      const rad = (angle * Math.PI) / 180;
-      const x = radius * Math.sin(rad);
-      const z = radius * Math.cos(rad);
-      item.style.transform = `translateX(${x}px) translateZ(${z}px) translateY(-50%)`;
-      item.style.zIndex = Math.round(z);
-      // optionally highlight the item closest to front
-      item.style.filter = z > 0 ? 'brightness(1)' : 'brightness(0.6)';
-      item.style.pointerEvents = z > 0 ? 'auto' : 'none';
+      const rad = angle * Math.PI / 180;
+      const x = Math.sin(rad) * radius;
+      const z = Math.cos(rad) * radius;
+      item.style.transform = `translateX(${x}px) translateZ(${z}px) translateY(-50%) scale(${i === currentIndex ? 1.1 : 0.9})`;
+      item.style.zIndex = (i === currentIndex ? 100 : 10);
+      item.classList.toggle('active', i === currentIndex);
+      // Smooth shadow animation for active
+      if (i === currentIndex) {
+        item.style.boxShadow = "0 16px 35px rgba(0,0,0,0.8), inset 0 0 30px rgba(255,255,255,0.15)";
+      } else {
+        item.style.boxShadow = "0 8px 15px rgba(0,0,0,0.5), inset 0 0 12px rgba(255,255,255,0.1)";
+      }
     });
   }
 
-  // Initialize carousel DOM
+  // Initialize carousel
   function initCarousel() {
     carouselContainer.innerHTML = '';
     files.forEach((file, i) => {
       const item = createCarouselItem(file, i);
       carouselContainer.appendChild(item);
     });
-  }
-
-  // Rotate carousel
-  function rotateCarousel(deltaX) {
-    rotationY = lastRotationY + deltaX * 0.5;
-    updateCarouselPositions();
-  }
-
-  // Handle drag start
-  function onDragStart(e) {
-    isDragging = true;
-    dragStartX = e.clientX || (e.touches && e.touches[0].clientX);
-    lastRotationY = rotationY;
-  }
-  // Handle drag move
-  function onDragMove(e) {
-    if (!isDragging) return;
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    const deltaX = clientX - dragStartX;
-    rotateCarousel(deltaX);
-  }
-  // Handle drag end
-  function onDragEnd(e) {
-    if (!isDragging) return;
-    isDragging = false;
-    // Snap rotation to allow smooth free rotation (no locking)
-    lastRotationY = rotationY;
-  }
-
-  // Open video/image playback
-  function openPlayback(index) {
-    if (index === null || index < 0 || index >= files.length) return;
-    const file = files[index];
-    currentIndex = index;
-    if (file.type.startsWith('image')) {
-      // For images, just fullscreen display
-      showImageFullscreen(file.url);
-    } else if (file.type.startsWith('video')) {
-      openVideoPlayback(file.url);
-    }
-  }
-
-  // Show image fullscreen (simple)
-  function showImageFullscreen(url) {
-    playbackOverlay.classList.add('active');
-    playbackVideo.style.display = 'none';
-
-    // Create or reuse fullscreen img element
-    let img = playbackOverlay.querySelector('img.fullscreen-image');
-    if (!img) {
-      img = document.createElement('img');
-      img.className = 'fullscreen-image';
-      img.style.maxWidth = '90vw';
-      img.style.maxHeight = '90vh';
-      img.style.borderRadius = '12px';
-      img.style.boxShadow = '0 10px 40px rgba(0,0,0,0.8)';
-      playbackOverlay.insertBefore(img, playbackControls);
-    }
-    img.src = url;
-    img.style.display = 'block';
-
-    playbackControls.style.display = 'none'; // no controls for images
-
-    playbackOverlay.setAttribute('aria-hidden', 'false');
-  }
-
-  // Open video playback UI
-  function openVideoPlayback(url) {
-    playbackOverlay.classList.add('active');
-    playbackVideo.style.display = 'block';
-    // Remove fullscreen image if exists
-    const img = playbackOverlay.querySelector('img.fullscreen-image');
-    if (img) img.style.display = 'none';
-
-    playbackVideo.src = url;
-    playbackVideo.muted = isMuted;
-    playbackVideo.play();
-
-    playbackControls.style.display = 'flex';
-
-    playbackOverlay.setAttribute('aria-hidden', 'false');
-    isPlaying = true;
-    updatePlayPauseButton();
-  }
-
-  // Close playback
-  function closePlayback() {
-    playbackOverlay.classList.remove('active');
-    playbackVideo.pause();
-    playbackVideo.src = '';
-    const img = playbackOverlay.querySelector('img.fullscreen-image');
-    if (img) img.style.display = 'none';
-    playbackOverlay.setAttribute('aria-hidden', 'true');
-    currentIndex = null;
-  }
-
-  // Playback controls handlers
-  btnExit.onclick = () => closePlayback();
-  btnPlayPause.onclick = () => {
-    if (playbackVideo.paused) {
-      playbackVideo.play();
-      isPlaying = true;
-    } else {
-      playbackVideo.pause();
-      isPlaying = false;
-    }
-    updatePlayPauseButton();
-  };
-  btnForward.onclick = () => {
-    playbackVideo.currentTime = Math.min(playbackVideo.duration, playbackVideo.currentTime + 10);
-  };
-  btnRewind.onclick = () => {
-    playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 10);
-  };
-  btnMute.onclick = () => {
-    isMuted = !isMuted;
-    playbackVideo.muted = isMuted;
-    updateMuteButton();
-  };
-
-  function updatePlayPauseButton() {
-    btnPlayPause.className = isPlaying ? 'icon-pause' : 'icon-play';
-  }
-  function updateMuteButton() {
-    btnMute.className = isMuted ? 'icon-mute' : 'icon-unmute';
-  }
-
-  // Keyboard handlers for playback overlay
-  window.addEventListener('keydown', (e) => {
-    if (!playbackOverlay.classList.contains('active')) return;
-    if (e.key === 'Escape') {
-      closePlayback();
-    } else if (e.key === ' ') {
-      e.preventDefault();
-      btnPlayPause.click();
-    } else if (e.key === 'ArrowRight') {
-      btnForward.click();
-    } else if (e.key === 'ArrowLeft') {
-      btnRewind.click();
-    } else if (e.key.toLowerCase() === 'm') {
-      btnMute.click();
-    }
-  });
-
-  // Prevent scrolling with mouse wheel from triggering clicks or weird behavior
-  carouselContainer.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    // Instead rotate carousel based on wheel delta
-    rotationY += e.deltaY * 0.3;
-    lastRotationY = rotationY;
-    updateCarouselPositions();
-  }, { passive: false });
-
-  // Drag handlers for carousel
-  carouselContainer.addEventListener('mousedown', onDragStart);
-  window.addEventListener('mousemove', onDragMove);
-  window.addEventListener('mouseup', onDragEnd);
-
-  carouselContainer.addEventListener('touchstart', onDragStart);
-  window.addEventListener('touchmove', onDragMove);
-  window.addEventListener('touchend', onDragEnd);
-
-  // Load sample files (replace with your own images/videos URLs or extend)
-  function loadSampleFiles() {
-    files = [
-      { name: 'Windows 7 Desktop', url: 'https://i.imgur.com/zOaOfxZ.jpg', type: 'image/jpeg' },
-      { name: 'Example Video', url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', type: 'video/webm' },
-      { name: 'Windows 7 Wallpaper', url: 'https://wallpaperaccess.com/full/1037861.jpg', type: 'image/jpeg' },
-      { name: 'Demo Video', url: 'https://media.w3.org/2010/05/sintel/trailer.mp4', type: 'video/mp4' }
-    ];
-  }
-
-  // Initialize
-  function init() {
-    loadSampleFiles();
-    initCarousel();
+    currentIndex = 0;
     rotationY = 0;
     updateCarouselPositions();
   }
 
-  // Easter egg key sequence "G" pressed 4 times fast
-  window.addEventListener('keydown', (e) => {
-    if (e.key.toLowerCase() === 'g') {
-      easterEggSequence.push(Date.now());
-      // Keep last 4 presses in 5 seconds window
-      easterEggSequence = easterEggSequence.filter(t => Date.now() - t < 5000);
-      if (easterEggSequence.length >= 4 && !easterEggActive) {
-        startEasterEgg();
-        easterEggSequence = [];
+  // Dragging carousel rotation
+  function onDragStart(e) {
+    if (videoPlaying) return; // no rotate while video open
+    isDragging = true;
+    dragStartX = e.clientX || e.touches?.[0]?.clientX;
+    lastX = dragStartX;
+  }
+  function onDragMove(e) {
+    if (!isDragging) return;
+    const clientX = e.clientX || e.touches?.[0]?.clientX;
+    const deltaX = clientX - lastX;
+    lastX = clientX;
+    rotationY += deltaX * 0.3;
+    rotationY %= 360;
+    updateCarouselPositions();
+  }
+  function onDragEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+  }
+
+  // Handle click / open item
+  function openItem(index) {
+    if (videoPlaying || easterEggActive) return;
+    const item = carouselContainer.querySelector(`.carousel-item[data-index="${index}"]`);
+    if (!item) return;
+    const file = files[index];
+    if (!file) return;
+
+    // Animate others "fall down" (translateY)
+    const items = carouselContainer.querySelectorAll('.carousel-item');
+    items.forEach((el, i) => {
+      if (i !== index) {
+        el.style.transition = 'transform 0.8s ease';
+        el.style.transform += ' translateY(800px) scale(0.6)';
+        el.style.opacity = '0.4';
       }
+    });
+
+    // Animate the clicked item to big screen
+    item.style.transition = 'transform 0.8s ease';
+    item.style.transform = 'translateX(0) translateY(0) translateZ(400px) scale(2.2)';
+    item.style.zIndex = 9999;
+
+    if (file.type.startsWith('video')) {
+      videoPlaying = item.querySelector('video');
+      if (!videoPlaying) return;
+      videoPlaying.muted = false;
+      videoPlaying.play();
+      showPlaybackUI();
     }
+  }
+
+  // Close video playback and reset carousel
+  function closePlayback() {
+    if (!videoPlaying) return;
+    videoPlaying.pause();
+    videoPlaying.currentTime = 0;
+    videoPlaying.muted = true;
+    videoPlaying = null;
+
+    // Reset all items
+    const items = carouselContainer.querySelectorAll('.carousel-item');
+    items.forEach((el) => {
+      el.style.transition = 'transform 0.8s ease, opacity 0.8s ease';
+      el.style.opacity = '1';
+    });
+    rotationY = 0;
+    currentIndex = 0;
+    updateCarouselPositions();
+    hidePlaybackUI();
+  }
+
+  // Playback UI controls
+  function showPlaybackUI() {
+    playbackUI.classList.add('visible');
+  }
+  function hidePlaybackUI() {
+    playbackUI.classList.remove('visible');
+    // reset play/pause icon
+    playIcon.style.display = 'block';
+    pauseIcon.style.display = 'none';
+  }
+
+  // Play/pause toggle
+  function togglePlayPause() {
+    if (!videoPlaying) return;
+    if (videoPlaying.paused) {
+      videoPlaying.play();
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = 'block';
+    } else {
+      videoPlaying.pause();
+      playIcon.style.display = 'block';
+      pauseIcon.style.display = 'none';
+    }
+  }
+
+  // Mute/unmute toggle
+  function toggleMute() {
+    if (!videoPlaying) return;
+    videoPlaying.muted = !videoPlaying.muted;
+    if (videoPlaying.muted) {
+      muteIcon.style.display = 'none';
+      unmuteIcon.style.display = 'block';
+    } else {
+      muteIcon.style.display = 'block';
+      unmuteIcon.style.display = 'none';
+    }
+  }
+
+  // Fast forward 5s
+  function forward5() {
+    if (!videoPlaying) return;
+    videoPlaying.currentTime = Math.min(videoPlaying.duration, videoPlaying.currentTime + 5);
+  }
+  // Rewind 5s
+  function rewind5() {
+    if (!videoPlaying) return;
+    videoPlaying.currentTime = Math.max(0, videoPlaying.currentTime - 5);
+  }
+
+  // Carousel click to open item
+  carouselContainer.addEventListener('click', e => {
+    if (isDragging || videoPlaying || easterEggActive) return;
+    const item = e.target.closest('.carousel-item');
+    if (!item) return;
+    const index = parseInt(item.dataset.index);
+    openItem(index);
   });
 
-  // Easter egg flash animation
-  const flashColors = ['red', 'green', 'blue'];
-  function flashSequence(duration = 20000) {
-    let start = null;
-    let idx = 0;
-    function step(timestamp) {
-      if (!start) start = timestamp;
-      const elapsed = timestamp - start;
-      if (elapsed >= duration) {
-        flashCtx.clearRect(0, 0, flashCanvas.width, flashCanvas.height);
-        flashCanvas.style.opacity = 0;
+  // Drag and drop files support with prevention of default behavior (no new tabs)
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt =>
+    document.addEventListener(evt, e => e.preventDefault())
+  );
+
+  carouselContainer.addEventListener('drop', e => {
+    e.preventDefault();
+    const dt = e.dataTransfer;
+    if (!dt) return;
+    const droppedFiles = Array.from(dt.files);
+
+    droppedFiles.forEach(file => {
+      if (!file.type.startsWith('image') && !file.type.startsWith('video')) return;
+      const url = URL.createObjectURL(file);
+      files.push({ name: file.name, url, type: file.type });
+    });
+
+    initCarousel();
+  });
+
+  // Dragging events
+  carouselContainer.addEventListener('mousedown', onDragStart);
+  carouselContainer.addEventListener('touchstart', onDragStart);
+  window.addEventListener('mousemove', onDragMove);
+  window.addEventListener('touchmove', onDragMove);
+  window.addEventListener('mouseup', onDragEnd);
+  window.addEventListener('touchend', onDragEnd);
+
+  // Keyboard for easter egg and controls
+  window.addEventListener('keydown', e => {
+    if (videoPlaying) {
+      // ESC exits video playback
+      if (e.key === 'Escape') {
+        closePlayback();
         return;
       }
-      flashCanvas.style.opacity = 0.8;
-      flashCtx.fillStyle = flashColors[idx % flashColors.length];
-      flashCtx.fillRect(0, 0, flashCanvas.width, flashCanvas.height);
-      idx++;
-      flashAnimationFrame = requestAnimationFrame(step);
+      // Space toggles play/pause
+      if (e.key === ' ') {
+        e.preventDefault();
+        togglePlayPause();
+        return;
+      }
     }
-    flashAnimationFrame = requestAnimationFrame(step);
-  }
 
-  function startEasterEgg() {
-    easterEggActive = true;
-    // Hide carousel
-    carouselContainer.style.display = 'none';
-    // Play audio
-    easterEggAudio.currentTime = 0;
-    easterEggAudio.play();
-
-    // Start flashing
-    flashSequence(20000);
-
-    // After 20s end
-    setTimeout(() => {
-      easterEggAudio.pause();
-      carouselContainer.style.display = 'block';
-      easterEggActive = false;
-      cancelAnimationFrame(flashAnimationFrame);
-      flashCanvas.style.opacity = 0;
-      flashCtx.clearRect(0, 0, flashCanvas.width, flashCanvas.height);
-    }, 20000);
-  }
-
-  // Export HTML button - simple alert with placeholder for demo
-  document.getElementById('exportBtn').onclick = () => {
-    alert('Export functionality not implemented yet.');
-  };
-
-  // Greece honor button click handler
-  greeceBtn.addEventListener('click', () => {
-    // Hide everything except overlay
-    document.body.style.overflow = 'hidden';
-    document.body.style.background = 'black';
-    carouselContainer.style.display = 'none';
-    playbackOverlay.classList.remove('active');
-    greeceOverlay.style.pointerEvents = 'auto';
-    greeceOverlay.style.opacity = '1';
-
-    // Play text fade in
-    greeceOverlay.querySelector('p').style.opacity = 0;
-    let textOpacity = 0;
-    const fadeInInterval = setInterval(() => {
-      textOpacity += 0.01;
-      greeceOverlay.querySelector('p').style.opacity = textOpacity;
-      if (textOpacity >= 1) clearInterval(fadeInInterval);
-    }, 30);
-
-    // Play video after 4 seconds delay for text
-    setTimeout(() => {
-      greeceVideo.play();
-    }, 4000);
-
-    // When video ends, revert everything
-    greeceVideo.onended = () => {
-      greeceOverlay.style.opacity = '0';
-      greeceOverlay.style.pointerEvents = 'none';
-      document.body.style.overflow = '';
-      document.body.style.background = '';
-      carouselContainer.style.display = 'block';
-      greeceVideo.pause();
-      greeceVideo.currentTime = 0;
-    };
+    // Easter egg key tracking (G x4)
+    keySequence.push(e.key.toLowerCase());
+    if (keySequence.length > easterEggCode.length) {
+      keySequence.shift();
+    }
+    if (keySequence.join('') === easterEggCode.join('')) {
+      startEasterEgg();
+    }
   });
 
-  // Initialize everything on page load
-  window.onload = init;
+  // Playback UI buttons
+  btnExit.addEventListener('click', closePlayback);
+  btnPlay.addEventListener('click', togglePlayPause);
+  btnMute.addEventListener('click', toggleMute);
+  btnForward.addEventListener('click', forward5);
+  btnRewind.addEventListener('click', rewind5);
+
+  // Tribute Button Logic
+  tributeBtn.addEventListener('click', () => {
+    if (tributeOverlay.style.opacity === '1') {
+      hideTribute();
+    } else {
+      showTribute();
+    }
+  });
+
+  // Carousel Init + Center at start
+  function init() {
+    loadSampleFiles();
+    initCarousel();
+  }
+
+  // Center carousel at start with update positions
+  rotationY = 0;
+  currentIndex = 0;
+
+  init();
+
+  // --- EASTER EGG ---
+  let easterAudio = new Audio('https://cdn.jsdelivr.net/gh/basilisezkid23/Infinete-Canvas@main/Lensko%20-%20Let\'s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
+  easterAudio.volume = 0.8;
+
+  function startEasterEgg() {
+    if (easterEggActive) return;
+    easterEggActive = true;
+
+    // Hide all carousel items
+    carouselContainer.querySelectorAll('.carousel-item').forEach(el => {
+      el.style.transition = 'opacity 0.4s ease';
+      el.style.opacity = '0';
+      el.style.pointerEvents = 'none';
+    });
+
+    // Flash red, green, blue background for 20 seconds
+    let colors = ['red', 'green', 'blue'];
+    let i = 0;
+    const flashInterval = 500; // half a second per color
+    let flashCount = 0;
+    const maxFlashes = 20 * 1000 / flashInterval; // total flashes for 20 seconds
+
+    const flashTimer = setInterval(() => {
+      document.body.style.backgroundColor = colors[i % colors.length];
+      i++;
+      flashCount++;
+      if (flashCount >= maxFlashes) {
+        clearInterval(flashTimer);
+        stopEasterEgg();
+      }
+    }, flashInterval);
+
+    // Play easter egg audio
+    easterAudio.currentTime = 0;
+    easterAudio.play();
+
+    // End easter egg after 20 seconds + small buffer
+    easterEggTimeout = setTimeout(() => {
+      stopEasterEgg();
+    }, 20_500);
+  }
+
+  function stopEasterEgg() {
+    if (!easterEggActive) return;
+    easterEggActive = false;
+    easterAudio.pause();
+    easterAudio.currentTime = 0;
+    document.body.style.backgroundColor = ''; // reset
+
+    // Restore carousel items opacity
+    carouselContainer.querySelectorAll('.carousel-item').forEach(el => {
+      el.style.opacity = '1';
+      el.style.pointerEvents = 'auto';
+    });
+
+    initCarousel(); // reset carousel rotation and positions
+
+    if (easterEggTimeout) {
+      clearTimeout(easterEggTimeout);
+      easterEggTimeout = null;
+    }
+  }
+
+  // --- Tribute logic ---
+
+  let tributeTextContent = "This, to whoever is watching this, is for my country Greece, for Macedonia..";
+
+  // URL raw version for direct playback (jsDelivr CDN)
+  const tributeVideoURL = 'https://cdn.jsdelivr.net/gh/basilisezkid23/Infinete-Canvas@main/macedonia%20is%20greek.mp4';
+
+  function showTribute() {
+    tributeOverlay.style.pointerEvents = 'auto';
+    tributeOverlay.style.opacity = '1';
+    tributeText.style.opacity = '0';
+    tributeText.textContent = '';
+    tributeVideo.style.display = 'none';
+    tributeVideo.pause();
+    tributeVideo.src = '';
+
+    // Animate text typing
+    let idx = 0;
+    const interval = 40;
+    function typeText() {
+      if (idx < tributeTextContent.length) {
+        tributeText.textContent += tributeTextContent[idx++];
+        tributeText.style.opacity = '1';
+        setTimeout(typeText, interval);
+      } else {
+        playTributeVideo();
+      }
+    }
+    typeText();
+  }
+
+  function playTributeVideo() {
+    tributeVideo.src = tributeVideoURL;
+    tributeVideo.style.display = 'block';
+    tributeVideo.play();
+    tributeVideo.onended = hideTribute;
+  }
+
+  function hideTribute() {
+    tributeVideo.pause();
+    tributeVideo.src = '';
+    tributeOverlay.style.opacity = '0';
+    tributeOverlay.style.pointerEvents = 'none';
+    tributeText.textContent = '';
+  }
 
 })();
 </script>
-
 </body>
 </html>

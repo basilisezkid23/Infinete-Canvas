@@ -3,685 +3,704 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Windows 7 Style Infinite Carousel Canvas</title>
+<title>Windows 7 Style Carousel with Video Playback & Easter Egg</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap');
-
-  :root {
-    --bg-color: #1a1a1a;
-    --carousel-radius: 350px;
-    --carousel-item-width: 260px;
-    --carousel-item-height: 180px;
-    --aero-bg: rgba(255 255 255 / 0.15);
-    --control-icon-color: white;
-    --control-bg: rgba(0 0 0 / 0.4);
-    --transition-time: 0.6s;
-  }
-
+  /* Reset & base */
   * {
     box-sizing: border-box;
   }
-
   body, html {
     margin: 0; padding: 0;
     height: 100%;
-    background: linear-gradient(135deg, #0a0a0a 0%, #222 100%);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(180deg, #e3eaf6 0%, #f7f9fc 100%);
     overflow: hidden;
-    color: white;
-  }
-
-  #app {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg-color);
-    position: relative;
-  }
-
-  header {
-    display: flex;
-    justify-content: flex-end;
-    padding: 10px 20px;
-    z-index: 20;
-  }
-  #tribute-btn {
-    background: var(--aero-bg);
-    border: 1.5px solid rgba(255 255 255 / 0.3);
-    border-radius: 5px;
-    color: white;
-    font-size: 0.85rem;
-    cursor: pointer;
-    padding: 5px 10px;
     user-select: none;
-    backdrop-filter: blur(12px);
-    transition: background 0.3s ease;
-  }
-  #tribute-btn:hover {
-    background: rgba(255 255 255 / 0.3);
   }
 
-  main {
-    flex: 1;
-    perspective: 1200px;
+  /* Instructions Overlay */
+  #instructions-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    color: white;
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
+    z-index: 9999;
+    padding: 20px;
+    text-align: left;
+  }
+  #instructions-content {
+    background: rgba(30,30,30,0.95);
+    border-radius: 15px;
+    padding: 30px 40px;
+    max-width: 480px;
+    box-shadow: 0 0 25px rgba(255 255 255 / 0.3);
+  }
+  #instructions-content h2 {
+    margin-top: 0;
+    font-weight: 700;
+    font-size: 1.9rem;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+  #instructions-content ul {
+    padding-left: 20px;
+    margin-bottom: 25px;
+    font-size: 1.1rem;
+    line-height: 1.5;
+  }
+  #close-instructions {
+    display: block;
+    margin: 0 auto;
+    background: #0078d7;
+    border: none;
+    color: white;
+    padding: 12px 25px;
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    user-select: none;
+  }
+  #close-instructions:hover {
+    background: #005a9e;
   }
 
+  /* Tribute button top-right */
+  #tribute-btn {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: #0078d7;
+    border-radius: 8px;
+    color: white;
+    font-size: 18px;
+    padding: 6px 10px;
+    cursor: pointer;
+    user-select: none;
+    z-index: 999;
+    transition: background 0.3s ease;
+  }
+  #tribute-btn:hover {
+    background: #005a9e;
+  }
+
+  /* Fullscreen tribute overlay */
+  #tribute-overlay {
+    position: fixed;
+    inset: 0;
+    background: black;
+    color: white;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    z-index: 10000;
+  }
+  #tribute-text {
+    font-size: 2rem;
+    max-width: 600px;
+    margin-bottom: 20px;
+    opacity: 0;
+    transition: opacity 3s ease;
+    text-align: center;
+    line-height: 1.3;
+  }
+  #tribute-video {
+    max-width: 90vw;
+    max-height: 50vh;
+    border-radius: 12px;
+    box-shadow: 0 0 25px rgba(255 255 255 / 0.5);
+  }
+
+  /* Carousel Container */
   #carousel-container {
-    width: 100%;
-    max-width: 1000px;
-    height: 300px;
-    position: relative;
-    transform-style: preserve-3d;
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 700px;
+    height: 400px;
+    perspective: 1200px;
     user-select: none;
   }
 
+  /* Carousel */
   #carousel {
     width: 100%;
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    transition: transform var(--transition-time) cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: grab;
   }
-  #carousel:active {
-    cursor: grabbing;
-  }
 
+  /* Carousel item */
   .carousel-item {
     position: absolute;
-    top: 50%;
+    width: 240px;
+    height: 160px;
     left: 50%;
-    width: var(--carousel-item-width);
-    height: var(--carousel-item-height);
-    margin: calc(var(--carousel-item-height) / -2) calc(var(--carousel-item-width) / -2);
+    top: 50%;
+    margin-left: -120px;
+    margin-top: -80px;
     border-radius: 12px;
     box-shadow:
-      0 8px 15px rgba(0,0,0,0.5),
-      inset 0 0 12px rgba(255,255,255,0.1);
-    background: var(--aero-bg);
-    backdrop-filter: blur(16px);
+      0 4px 8px rgba(0,0,0,0.3),
+      0 0 15px rgba(0,0,0,0.15);
+    background: #222;
     overflow: hidden;
+    backface-visibility: hidden;
     transition:
-      transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.4s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+      transform 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 0.3s ease;
   }
+
   .carousel-item img,
   .carousel-item video {
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 12px;
-    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
     user-select: none;
-    filter: drop-shadow(0 0 5px rgba(0,0,0,0.4));
+    pointer-events: none;
   }
+
   .carousel-item video {
-    background: black;
+    pointer-events: auto; /* for playback controls */
   }
-  .carousel-item.active {
+
+  .carousel-item:hover {
     box-shadow:
-      0 16px 35px rgba(0,0,0,0.8),
-      inset 0 0 30px rgba(255,255,255,0.15);
-    z-index: 5;
+      0 12px 24px rgba(0,0,0,0.6),
+      0 0 40px rgba(0,0,0,0.3);
   }
 
   /* Playback UI */
   #playback-ui {
     position: fixed;
-    bottom: 20px;
+    bottom: 25px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--aero-bg);
-    backdrop-filter: blur(20px);
-    border-radius: 12px;
+    background: rgba(255 255 255 / 0.15);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-radius: 20px;
+    padding: 10px 15px;
     display: flex;
     align-items: center;
-    padding: 8px 20px;
-    gap: 18px;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-    z-index: 30;
-    user-select: none;
+    gap: 20px;
     width: 350px;
+    max-width: 90vw;
+    color: white;
+    font-size: 0;
+    user-select: none;
+    box-shadow: 0 0 15px rgba(255,255,255,0.3);
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 9999;
   }
   #playback-ui.visible {
+    visibility: visible;
     opacity: 1;
-    pointer-events: auto;
   }
-
-  .control-btn {
-    background: var(--control-bg);
+  #playback-ui button {
+    background: transparent;
     border: none;
-    border-radius: 6px;
-    color: var(--control-icon-color);
-    cursor: pointer;
+    color: white;
     font-size: 22px;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    cursor: pointer;
     user-select: none;
-    transition: background 0.3s ease;
+    outline-offset: 2px;
+    transition: color 0.2s ease;
   }
-  .control-btn:hover {
-    background: rgba(255 255 255 / 0.25);
+  #playback-ui button:hover {
+    color: #0078d7;
+  }
+  #playback-ui button:focus {
+    outline: 2px solid #0078d7;
+    outline-offset: 2px;
   }
 
-  /* Simple icons (not Microsoft) */
-  .control-btn svg {
+  /* Icons for buttons (simple SVG inline) */
+  #playback-ui button svg {
     fill: currentColor;
     width: 20px;
     height: 20px;
   }
 
-  /* Tribute overlay */
-  #tribute-overlay {
-    position: fixed;
-    top: 0; left: 0; right:0; bottom: 0;
-    background: black;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-size: 2.2rem;
-    font-weight: 600;
-    text-align: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 1s ease;
-    z-index: 100;
-    padding: 20px;
-  }
-  #tribute-text {
-    max-width: 700px;
-    margin-bottom: 20px;
-    opacity: 0;
-    transition: opacity 4s ease;
-  }
-  #tribute-video {
-    max-width: 90vw;
-    max-height: 55vh;
-    border-radius: 15px;
-    box-shadow: 0 0 25px rgba(255 255 255 / 0.8);
-    display: none;
-  }
 </style>
 </head>
 <body>
-<div id="app">
-  <header>
-    <button id="tribute-btn" title="Tribute to Greece">🇬🇷 Tribute</button>
-  </header>
-  <main>
-    <div id="carousel-container" tabindex="0" aria-label="Infinite Windows 7 style carousel"></div>
-  </main>
-  <div id="playback-ui" aria-label="Video playback controls" role="region">
-    <button class="control-btn" id="btn-exit" title="Exit playback" aria-label="Exit playback">
-      <!-- X icon -->
-      <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    </button>
-    <button class="control-btn" id="btn-rewind" title="Rewind 5s" aria-label="Rewind 5 seconds">
-      <!-- rewind icon -->
-      <svg viewBox="0 0 24 24"><path d="M11 19L2 12l9-7v14zM22 19l-9-7 9-7v14z" fill="currentColor"/></svg>
-    </button>
-    <button class="control-btn" id="btn-play" title="Play/Pause" aria-label="Play or pause">
-      <!-- play icon -->
-      <svg viewBox="0 0 24 24" id="play-icon"><path d="M8 5v14l11-7z"/></svg>
-      <svg viewBox="0 0 24 24" id="pause-icon" style="display:none;"><path d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>
-    </button>
-    <button class="control-btn" id="btn-forward" title="Forward 5s" aria-label="Forward 5 seconds">
-      <!-- forward icon -->
-      <svg viewBox="0 0 24 24"><path d="M13 5l9 7-9 7V5zM2 5l9 7-9 7V5z" fill="currentColor"/></svg>
-    </button>
-    <button class="control-btn" id="btn-mute" title="Mute/Unmute" aria-label="Mute or unmute">
-      <!-- mute icon -->
-      <svg viewBox="0 0 24 24" id="mute-icon"><path d="M16 7h-1.5L12 5.5v13l2.5-2.5H16l3-3v-3l-3-3z"/></svg>
-      <svg viewBox="0 0 24 24" id="unmute-icon" style="display:none;"><path d="M19 12a7 7 0 0 1-7 7v-3l-3 3V8l3 3V8a7 7 0 0 1 7 7z"/></svg>
-    </button>
-  </div>
 
-  <div id="tribute-overlay" role="dialog" aria-modal="true">
-    <div id="tribute-text"></div>
-    <video id="tribute-video" controls></video>
+<!-- Instructions Overlay -->
+<div id="instructions-overlay" role="dialog" aria-modal="true" aria-label="How to use instructions">
+  <div id="instructions-content">
+    <h2>How to Use</h2>
+    <ul>
+      <li>Drag and drop images or videos onto the carousel below to add them.</li>
+      <li>Click or tap on an item to open it (videos play with controls).</li>
+      <li>Drag left/right on the carousel to rotate through items smoothly.</li>
+      <li>Press <strong>G</strong> 4 times quickly for a surprise Easter egg!</li>
+      <li>Use the playback controls at the bottom for video control.</li>
+      <li>Click the 🇬🇷 Tribute button at the top right for a special message.</li>
+      <li>Press ESC to exit video playback.</li>
+    </ul>
+    <button id="close-instructions">Got it!</button>
   </div>
+</div>
+
+<!-- Tribute button -->
+<button id="tribute-btn" title="Tribute to Greece 🇬🇷">🇬🇷</button>
+
+<!-- Tribute overlay -->
+<div id="tribute-overlay" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1">
+  <div id="tribute-text"></div>
+  <video id="tribute-video" controls preload="auto" crossorigin="anonymous"></video>
+</div>
+
+<!-- Carousel container -->
+<div id="carousel-container" aria-label="Image and video carousel" role="list"></div>
+
+<!-- Playback UI -->
+<div id="playback-ui" aria-label="Video playback controls">
+  <button id="playback-exit" title="Exit video playback" aria-label="Exit video playback">
+    <!-- X icon -->
+    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <button id="playback-rewind" title="Rewind 5 seconds" aria-label="Rewind 5 seconds">
+    <!-- rewind icon -->
+    <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="playback-play" title="Play/Pause" aria-label="Play or pause video">
+    <!-- play icon -->
+    <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="pause-icon" viewBox="0 0 24 24" style="display:none;"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+  </button>
+  <button id="playback-forward" title="Fast forward 5 seconds" aria-label="Fast forward 5 seconds">
+    <!-- forward icon -->
+    <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <button id="playback-mute" title="Mute/Unmute" aria-label="Mute or unmute video">
+    <!-- speaker icon -->
+    <svg id="volume-on-icon" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4L9 9H5z"/></svg>
+    <svg id="volume-off-icon" viewBox="0 0 24 24" style="display:none;"><path d="M16 7l-1.41-1.41L12 8.17 9.41 5.59 8 7l3 3-3 3 1.41 1.41L12 13.83l2.59 2.58L16 17l-3-3 3-3z"/></svg>
+  </button>
 </div>
 
 <script>
 (() => {
-  // Setup core variables
+  // Elements refs
+  const instructionsOverlay = document.getElementById('instructions-overlay');
+  const closeInstructionsBtn = document.getElementById('close-instructions');
   const carouselContainer = document.getElementById('carousel-container');
   const playbackUI = document.getElementById('playback-ui');
-  const btnExit = document.getElementById('btn-exit');
-  const btnPlay = document.getElementById('btn-play');
-  const btnMute = document.getElementById('btn-mute');
-  const btnForward = document.getElementById('btn-forward');
-  const btnRewind = document.getElementById('btn-rewind');
+  const playbackExitBtn = document.getElementById('playback-exit');
+  const playbackRewindBtn = document.getElementById('playback-rewind');
+  const playbackPlayBtn = document.getElementById('playback-play');
+  const playbackForwardBtn = document.getElementById('playback-forward');
+  const playbackMuteBtn = document.getElementById('playback-mute');
   const playIcon = document.getElementById('play-icon');
   const pauseIcon = document.getElementById('pause-icon');
-  const muteIcon = document.getElementById('mute-icon');
-  const unmuteIcon = document.getElementById('unmute-icon');
+  const volumeOnIcon = document.getElementById('volume-on-icon');
+  const volumeOffIcon = document.getElementById('volume-off-icon');
   const tributeBtn = document.getElementById('tribute-btn');
   const tributeOverlay = document.getElementById('tribute-overlay');
   const tributeText = document.getElementById('tribute-text');
   const tributeVideo = document.getElementById('tribute-video');
 
-  let files = [];
+  // Carousel state
+  let items = []; // {type: "image"|"video", element, url, rotation}
   let rotationY = 0;
   let isDragging = false;
   let dragStartX = 0;
-  let lastX = 0;
-  let currentIndex = 0;
-  let videoPlaying = null;
+  let lastRotationY = 0;
+  let animationFrameId = null;
+  const radius = 350;
+
+  // Playback state
+  let currentPlayingIndex = null;
+  let currentVideo = null;
+  let isMuted = false;
+
+  // Easter egg state
   let easterEggActive = false;
   let easterEggTimeout = null;
-  let keySequence = [];
-  const easterEggCode = ['g', 'g', 'g', 'g'];
+  let easterEggColors = ['red', 'green', 'blue'];
+  let easterEggColorIndex = 0;
+  let easterEggFlashInterval = null;
+  const easterEggDuration = 20000; // 20 seconds
 
-  // Load sample files - fixed wallpaper URLs
-  function loadSampleFiles() {
-    files = [
-      { name: 'Windows 7 Desktop', url: 'https://i.imgur.com/zOaOfxZ.jpg', type: 'image/jpeg' },
-      { name: 'Example Video', url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', type: 'video/webm' },
-      { name: 'Windows 7 Wallpaper', url: 'https://wallpapercave.com/wp/wp1842825.jpg', type: 'image/jpeg' },
-      { name: 'Demo Video', url: 'https://media.w3.org/2010/05/sintel/trailer.mp4', type: 'video/mp4' }
-    ];
+  // Easter egg audio
+  const easterEggAudio = new Audio('https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/Lensko%20-%20Let%27s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
+  easterEggAudio.crossOrigin = "anonymous";
+  easterEggAudio.loop = false;
+
+  // Tribute video URL (raw)
+  const tributeVideoUrl = 'https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/macedonia%20is%20greek.mp4';
+
+  // Easter egg key sequence: press G 4 times quickly
+  let easterEggKeyCount = 0;
+  let easterEggKeyTimeout = null;
+
+  // Helpers
+
+  // Update carousel positions and transforms
+  function updateCarouselPositions() {
+    const N = items.length;
+    if (N === 0) return;
+    const anglePerItem = 360 / N;
+    items.forEach((item, i) => {
+      const itemAngle = rotationY + i * anglePerItem;
+      item.rotation = itemAngle;
+      const rad = (itemAngle * Math.PI) / 180;
+      const x = radius * Math.sin(rad);
+      const z = radius * Math.cos(rad);
+      // perspective and transform
+      item.element.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${itemAngle}deg) translateY(-50%) translateX(-50%)`;
+      // z-index by depth (higher z means front)
+      const depth = Math.cos(rad);
+      item.element.style.zIndex = Math.floor((depth + 1) * 100);
+      // subtle scale for front items
+      const scale = 0.8 + 0.4 * depth;
+      item.element.style.opacity = 0.3 + 0.7 * depth;
+      item.element.style.pointerEvents = depth > 0.1 ? 'auto' : 'none';
+      item.element.style.filter = `drop-shadow(0 4px 8px rgba(0,0,0,${0.3 * depth}))`;
+      item.element.style.transition = easterEggActive ? 'none' : 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease';
+      item.element.style.scale = scale;
+    });
   }
 
-  // Helpers: create carousel items (image or video)
-  function createCarouselItem(file, index) {
-    const div = document.createElement('div');
-    div.className = 'carousel-item';
-    div.dataset.index = index;
+  // Initialize carousel container
+  function initCarousel() {
+    carouselContainer.innerHTML = '';
+    items.forEach(({ element }) => carouselContainer.appendChild(element));
+    rotationY = 0;
+    updateCarouselPositions();
+  }
 
-    if (file.type.startsWith('image')) {
+  // Create item elements
+  function createCarouselItem(type, url) {
+    const item = document.createElement('div');
+    item.className = 'carousel-item';
+    item.tabIndex = 0;
+    item.setAttribute('role', 'listitem');
+    item.setAttribute('aria-label', `${type} item`);
+
+    if (type === 'image') {
       const img = document.createElement('img');
-      img.src = file.url;
-      img.alt = file.name || 'Image';
-      div.appendChild(img);
-    } else if (file.type.startsWith('video')) {
+      img.src = url;
+      img.alt = 'User added image';
+      item.appendChild(img);
+    } else if (type === 'video') {
       const video = document.createElement('video');
-      video.src = file.url;
+      video.src = url;
       video.preload = 'metadata';
       video.muted = true;
       video.playsInline = true;
-      video.loop = false;
-      video.controls = false; // We'll use custom controls
-      video.style.userSelect = 'none';
-      div.appendChild(video);
+      video.style.pointerEvents = 'none';
+      item.appendChild(video);
     }
-    return div;
+    return item;
   }
 
-  // Position carousel items in 3D circle
-  function updateCarouselPositions() {
-    const N = files.length;
-    if (N === 0) return;
-
-    const angleStep = 360 / N;
-    const radius = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--carousel-radius'));
-
-    const items = carouselContainer.querySelectorAll('.carousel-item');
-    items.forEach((item, i) => {
-      const angle = angleStep * i + rotationY;
-      const rad = angle * Math.PI / 180;
-      const x = Math.sin(rad) * radius;
-      const z = Math.cos(rad) * radius;
-      item.style.transform = `translateX(${x}px) translateZ(${z}px) translateY(-50%) scale(${i === currentIndex ? 1.1 : 0.9})`;
-      item.style.zIndex = (i === currentIndex ? 100 : 10);
-      item.classList.toggle('active', i === currentIndex);
-      // Smooth shadow animation for active
-      if (i === currentIndex) {
-        item.style.boxShadow = "0 16px 35px rgba(0,0,0,0.8), inset 0 0 30px rgba(255,255,255,0.15)";
-      } else {
-        item.style.boxShadow = "0 8px 15px rgba(0,0,0,0.5), inset 0 0 12px rgba(255,255,255,0.1)";
-      }
-    });
+  // Add new item to carousel
+  function addItem(type, url) {
+    const element = createCarouselItem(type, url);
+    items.push({ type, url, element, rotation: 0 });
+    initCarousel();
   }
 
-  // Initialize carousel
-  function initCarousel() {
-    carouselContainer.innerHTML = '';
-    files.forEach((file, i) => {
-      const item = createCarouselItem(file, i);
-      carouselContainer.appendChild(item);
-    });
-    currentIndex = 0;
-    rotationY = 0;
-    updateCarouselPositions();
-  }
-
-  // Dragging carousel rotation
-  function onDragStart(e) {
-    if (videoPlaying) return; // no rotate while video open
-    isDragging = true;
-    dragStartX = e.clientX || e.touches?.[0]?.clientX;
-    lastX = dragStartX;
-  }
-  function onDragMove(e) {
-    if (!isDragging) return;
-    const clientX = e.clientX || e.touches?.[0]?.clientX;
-    const deltaX = clientX - lastX;
-    lastX = clientX;
-    rotationY += deltaX * 0.3;
-    rotationY %= 360;
-    updateCarouselPositions();
-  }
-  function onDragEnd() {
-    if (!isDragging) return;
-    isDragging = false;
-  }
-
-  // Handle click / open item
+  // Open item playback
   function openItem(index) {
-    if (videoPlaying || easterEggActive) return;
-    const item = carouselContainer.querySelector(`.carousel-item[data-index="${index}"]`);
-    if (!item) return;
-    const file = files[index];
-    if (!file) return;
+    if (currentPlayingIndex !== null) return; // one video at a time
+    const item = items[index];
+    if (!item || item.type !== 'video') return;
 
-    // Animate others "fall down" (translateY)
-    const items = carouselContainer.querySelectorAll('.carousel-item');
-    items.forEach((el, i) => {
-      if (i !== index) {
-        el.style.transition = 'transform 0.8s ease';
-        el.style.transform += ' translateY(800px) scale(0.6)';
-        el.style.opacity = '0.4';
-      }
-    });
+    currentPlayingIndex = index;
+    currentVideo = item.element.querySelector('video');
 
-    // Animate the clicked item to big screen
-    item.style.transition = 'transform 0.8s ease';
-    item.style.transform = 'translateX(0) translateY(0) translateZ(400px) scale(2.2)';
-    item.style.zIndex = 9999;
+    if (!currentVideo) return;
 
-    if (file.type.startsWith('video')) {
-      videoPlaying = item.querySelector('video');
-      if (!videoPlaying) return;
-      videoPlaying.muted = false;
-      videoPlaying.play();
-      showPlaybackUI();
+    currentVideo.muted = isMuted;
+    currentVideo.currentTime = 0;
+    currentVideo.play();
+    showPlaybackUI(true);
+  }
+
+  // Close playback
+  function closePlayback() {
+    if (currentVideo) {
+      currentVideo.pause();
+      currentVideo.currentTime = 0;
+    }
+    currentPlayingIndex = null;
+    currentVideo = null;
+    showPlaybackUI(false);
+  }
+
+  // Show/hide playback UI
+  function showPlaybackUI(show) {
+    if (show) {
+      playbackUI.classList.add('visible');
+    } else {
+      playbackUI.classList.remove('visible');
     }
   }
 
-  // Close video playback and reset carousel
-  function closePlayback() {
-    if (!videoPlaying) return;
-    videoPlaying.pause();
-    videoPlaying.currentTime = 0;
-    videoPlaying.muted = true;
-    videoPlaying = null;
-
-    // Reset all items
-    const items = carouselContainer.querySelectorAll('.carousel-item');
-    items.forEach((el) => {
-      el.style.transition = 'transform 0.8s ease, opacity 0.8s ease';
-      el.style.opacity = '1';
-    });
-    rotationY = 0;
-    currentIndex = 0;
-    updateCarouselPositions();
-    hidePlaybackUI();
-  }
-
-  // Playback UI controls
-  function showPlaybackUI() {
-    playbackUI.classList.add('visible');
-  }
-  function hidePlaybackUI() {
-    playbackUI.classList.remove('visible');
-    // reset play/pause icon
-    playIcon.style.display = 'block';
-    pauseIcon.style.display = 'none';
-  }
-
-  // Play/pause toggle
-  function togglePlayPause() {
-    if (!videoPlaying) return;
-    if (videoPlaying.paused) {
-      videoPlaying.play();
+  // Playback controls handlers
+  playbackExitBtn.addEventListener('click', closePlayback);
+  playbackPlayBtn.addEventListener('click', () => {
+    if (!currentVideo) return;
+    if (currentVideo.paused) {
+      currentVideo.play();
       playIcon.style.display = 'none';
       pauseIcon.style.display = 'block';
     } else {
-      videoPlaying.pause();
+      currentVideo.pause();
       playIcon.style.display = 'block';
       pauseIcon.style.display = 'none';
     }
-  }
+  });
+  playbackRewindBtn.addEventListener('click', () => {
+    if (!currentVideo) return;
+    currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 5);
+  });
+  playbackForwardBtn.addEventListener('click', () => {
+    if (!currentVideo) return;
+    currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 5);
+  });
+  playbackMuteBtn.addEventListener('click', () => {
+    if (!currentVideo) return;
+    isMuted = !isMuted;
+    currentVideo.muted = isMuted;
+    volumeOnIcon.style.display = isMuted ? 'none' : 'block';
+    volumeOffIcon.style.display = isMuted ? 'block' : 'none';
+  });
 
-  // Mute/unmute toggle
-  function toggleMute() {
-    if (!videoPlaying) return;
-    videoPlaying.muted = !videoPlaying.muted;
-    if (videoPlaying.muted) {
-      muteIcon.style.display = 'none';
-      unmuteIcon.style.display = 'block';
-    } else {
-      muteIcon.style.display = 'block';
-      unmuteIcon.style.display = 'none';
+  // Clicking an item
+  function onItemClick(e) {
+    if (e.target.closest('.carousel-item')) {
+      const clickedElement = e.target.closest('.carousel-item');
+      const index = items.findIndex(i => i.element === clickedElement);
+      if (index === -1) return;
+
+      // If it's a video, open playback
+      if (items[index].type === 'video') {
+        openItem(index);
+      }
     }
   }
 
-  // Fast forward 5s
-  function forward5() {
-    if (!videoPlaying) return;
-    videoPlaying.currentTime = Math.min(videoPlaying.duration, videoPlaying.currentTime + 5);
+  // Drag to rotate carousel
+  function onPointerDown(e) {
+    isDragging = true;
+    dragStartX = e.clientX || e.touches[0].clientX;
+    lastRotationY = rotationY;
+    carouselContainer.style.cursor = 'grabbing';
   }
-  // Rewind 5s
-  function rewind5() {
-    if (!videoPlaying) return;
-    videoPlaying.currentTime = Math.max(0, videoPlaying.currentTime - 5);
+  function onPointerMove(e) {
+    if (!isDragging) return;
+    const currentX = e.clientX || (e.touches && e.touches[0].clientX);
+    if (currentX === undefined) return;
+    const deltaX = currentX - dragStartX;
+    // Sensitivity factor (play around with this)
+    rotationY = lastRotationY + deltaX * 0.3;
+    updateCarouselPositions();
+  }
+  function onPointerUp(e) {
+    isDragging = false;
+    carouselContainer.style.cursor = 'grab';
   }
 
-  // Carousel click to open item
-  carouselContainer.addEventListener('click', e => {
-    if (isDragging || videoPlaying || easterEggActive) return;
-    const item = e.target.closest('.carousel-item');
-    if (!item) return;
-    const index = parseInt(item.dataset.index);
-    openItem(index);
-  });
+  // Prevent opening image on drag end
+  let dragMoved = false;
+  function onPointerDownWithDragFlag(e) {
+    dragMoved = false;
+    onPointerDown(e);
+  }
+  function onPointerMoveWithDragFlag(e) {
+    dragMoved = true;
+    onPointerMove(e);
+  }
+  function onItemClickPreventIfDrag(e) {
+    if (dragMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragMoved = false;
+      return;
+    }
+    onItemClick(e);
+  }
 
-  // Drag and drop files support with prevention of default behavior (no new tabs)
-  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt =>
-    document.addEventListener(evt, e => e.preventDefault())
-  );
-
-  carouselContainer.addEventListener('drop', e => {
+  // Drag & drop to add images/videos
+  function onDragOver(e) {
     e.preventDefault();
-    const dt = e.dataTransfer;
-    if (!dt) return;
-    const droppedFiles = Array.from(dt.files);
+    e.dataTransfer.dropEffect = 'copy';
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
 
-    droppedFiles.forEach(file => {
-      if (!file.type.startsWith('image') && !file.type.startsWith('video')) return;
-      const url = URL.createObjectURL(file);
-      files.push({ name: file.name, url, type: file.type });
+    Array.from(files).forEach(file => {
+      if (!file.type) return;
+      if (file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        addItem('image', url);
+      } else if (file.type.startsWith('video/')) {
+        const url = URL.createObjectURL(file);
+        addItem('video', url);
+      }
     });
-
-    initCarousel();
-  });
-
-  // Dragging events
-  carouselContainer.addEventListener('mousedown', onDragStart);
-  carouselContainer.addEventListener('touchstart', onDragStart);
-  window.addEventListener('mousemove', onDragMove);
-  window.addEventListener('touchmove', onDragMove);
-  window.addEventListener('mouseup', onDragEnd);
-  window.addEventListener('touchend', onDragEnd);
-
-  // Keyboard for easter egg and controls
-  window.addEventListener('keydown', e => {
-    if (videoPlaying) {
-      // ESC exits video playback
-      if (e.key === 'Escape') {
-        closePlayback();
-        return;
-      }
-      // Space toggles play/pause
-      if (e.key === ' ') {
-        e.preventDefault();
-        togglePlayPause();
-        return;
-      }
-    }
-
-    // Easter egg key tracking (G x4)
-    keySequence.push(e.key.toLowerCase());
-    if (keySequence.length > easterEggCode.length) {
-      keySequence.shift();
-    }
-    if (keySequence.join('') === easterEggCode.join('')) {
-      startEasterEgg();
-    }
-  });
-
-  // Playback UI buttons
-  btnExit.addEventListener('click', closePlayback);
-  btnPlay.addEventListener('click', togglePlayPause);
-  btnMute.addEventListener('click', toggleMute);
-  btnForward.addEventListener('click', forward5);
-  btnRewind.addEventListener('click', rewind5);
-
-  // Tribute Button Logic
-  tributeBtn.addEventListener('click', () => {
-    if (tributeOverlay.style.opacity === '1') {
-      hideTribute();
-    } else {
-      showTribute();
-    }
-  });
-
-  // Carousel Init + Center at start
-  function init() {
-    loadSampleFiles();
-    initCarousel();
   }
 
-  // Center carousel at start with update positions
-  rotationY = 0;
-  currentIndex = 0;
+  // ESC key to close playback or tribute or instructions
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (currentPlayingIndex !== null) {
+        closePlayback();
+      }
+      if (tributeOverlay.style.display === 'flex') {
+        hideTribute();
+      }
+      if (instructionsOverlay.style.display !== 'none') {
+        closeInstructions();
+      }
+    }
+  });
 
-  init();
+  // Instructions close
+  function closeInstructions() {
+    instructionsOverlay.style.display = 'none';
+  }
+  closeInstructionsBtn.addEventListener('click', closeInstructions);
 
-  // --- EASTER EGG ---
-  let easterAudio = new Audio('https://cdn.jsdelivr.net/gh/basilisezkid23/Infinete-Canvas@main/Lensko%20-%20Let\'s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
-  easterAudio.volume = 0.8;
+  // Easter egg handling
+  window.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'g') {
+      easterEggKeyCount++;
+      clearTimeout(easterEggKeyTimeout);
+      easterEggKeyTimeout = setTimeout(() => {
+        easterEggKeyCount = 0;
+      }, 1000);
 
-  function startEasterEgg() {
+      if (easterEggKeyCount >= 4) {
+        easterEggKeyCount = 0;
+        triggerEasterEgg();
+      }
+    }
+  });
+
+  function triggerEasterEgg() {
     if (easterEggActive) return;
     easterEggActive = true;
 
-    // Hide all carousel items
-    carouselContainer.querySelectorAll('.carousel-item').forEach(el => {
-      el.style.transition = 'opacity 0.4s ease';
-      el.style.opacity = '0';
-      el.style.pointerEvents = 'none';
-    });
+    // Stop any playback
+    closePlayback();
 
-    // Flash red, green, blue background for 20 seconds
-    let colors = ['red', 'green', 'blue'];
-    let i = 0;
-    const flashInterval = 500; // half a second per color
+    // Hide all items
+    items.forEach(({ element }) => element.style.display = 'none');
+
+    // Start screen flashing colors
     let flashCount = 0;
-    const maxFlashes = 20 * 1000 / flashInterval; // total flashes for 20 seconds
-
-    const flashTimer = setInterval(() => {
-      document.body.style.backgroundColor = colors[i % colors.length];
-      i++;
+    easterEggFlashInterval = setInterval(() => {
+      document.body.style.backgroundColor = easterEggColors[flashCount % easterEggColors.length];
       flashCount++;
-      if (flashCount >= maxFlashes) {
-        clearInterval(flashTimer);
-        stopEasterEgg();
-      }
-    }, flashInterval);
+    }, 300);
 
-    // Play easter egg audio
-    easterAudio.currentTime = 0;
-    easterAudio.play();
+    // Play music
+    easterEggAudio.currentTime = 0;
+    easterEggAudio.play();
 
-    // End easter egg after 20 seconds + small buffer
+    // After duration, stop flash, music and restore UI
     easterEggTimeout = setTimeout(() => {
-      stopEasterEgg();
-    }, 20_500);
+      clearInterval(easterEggFlashInterval);
+      document.body.style.backgroundColor = '';
+      easterEggAudio.pause();
+      easterEggAudio.currentTime = 0;
+      items.forEach(({ element }) => element.style.display = '');
+      easterEggActive = false;
+    }, easterEggDuration);
   }
 
-  function stopEasterEgg() {
-    if (!easterEggActive) return;
-    easterEggActive = false;
-    easterAudio.pause();
-    easterAudio.currentTime = 0;
-    document.body.style.backgroundColor = ''; // reset
+  // Tribute button logic
+  tributeBtn.addEventListener('click', () => {
+    openTribute();
+  });
 
-    // Restore carousel items opacity
-    carouselContainer.querySelectorAll('.carousel-item').forEach(el => {
-      el.style.opacity = '1';
-      el.style.pointerEvents = 'auto';
-    });
+  function openTribute() {
+    // Hide other UI
+    closePlayback();
+    instructionsOverlay.style.display = 'none';
 
-    initCarousel(); // reset carousel rotation and positions
-
-    if (easterEggTimeout) {
-      clearTimeout(easterEggTimeout);
-      easterEggTimeout = null;
-    }
-  }
-
-  // --- Tribute logic ---
-
-  let tributeTextContent = "This, to whoever is watching this, is for my country Greece, for Macedonia..";
-
-  // URL raw version for direct playback (jsDelivr CDN)
-  const tributeVideoURL = 'https://cdn.jsdelivr.net/gh/basilisezkid23/Infinete-Canvas@main/macedonia%20is%20greek.mp4';
-
-  function showTribute() {
-    tributeOverlay.style.pointerEvents = 'auto';
-    tributeOverlay.style.opacity = '1';
+    tributeOverlay.style.display = 'flex';
+    tributeOverlay.setAttribute('aria-hidden', 'false');
     tributeText.style.opacity = '0';
     tributeText.textContent = '';
-    tributeVideo.style.display = 'none';
-    tributeVideo.pause();
-    tributeVideo.src = '';
 
-    // Animate text typing
-    let idx = 0;
-    const interval = 40;
-    function typeText() {
-      if (idx < tributeTextContent.length) {
-        tributeText.textContent += tributeTextContent[idx++];
+    // Animate text appearance
+    const message = "This, to whoever is watching this, is for my country Greece, for Macedonia..";
+    let index = 0;
+    tributeVideo.src = tributeVideoUrl;
+    tributeVideo.pause();
+    tributeVideo.currentTime = 0;
+
+    function revealText() {
+      if (index <= message.length) {
+        tributeText.textContent = message.slice(0, index);
         tributeText.style.opacity = '1';
-        setTimeout(typeText, interval);
+        index++;
+        setTimeout(revealText, 80);
       } else {
-        playTributeVideo();
+        tributeVideo.play();
       }
     }
-    typeText();
-  }
-
-  function playTributeVideo() {
-    tributeVideo.src = tributeVideoURL;
-    tributeVideo.style.display = 'block';
-    tributeVideo.play();
-    tributeVideo.onended = hideTribute;
+    revealText();
   }
 
   function hideTribute() {
+    tributeOverlay.style.display = 'none';
+    tributeOverlay.setAttribute('aria-hidden', 'true');
     tributeVideo.pause();
-    tributeVideo.src = '';
-    tributeOverlay.style.opacity = '0';
-    tributeOverlay.style.pointerEvents = 'none';
-    tributeText.textContent = '';
+    tributeVideo.currentTime = 0;
   }
+
+  // Initialization
+  function init() {
+    // Add example Windows 7 wallpaper images (fixed URLs)
+    const wallpaperUrls = [
+      'https://wallpaperaccess.com/full/321672.jpg',
+      'https://wallpapercave.com/wp/wp2921619.jpg',
+      'https://wallpapercave.com/wp/wp2204763.jpg',
+      'https://wallpaperaccess.com/full/1500087.jpg',
+      'https://wallpapercave.com/wp/wp2071327.jpg',
+    ];
+    wallpaperUrls.forEach(url => addItem('image', url));
+
+    // Setup drag & drop listeners on carousel container
+    carouselContainer.addEventListener('dragover', onDragOver);
+    carouselContainer.addEventListener('drop', onDrop);
+
+    // Setup pointer events for dragging
+    carouselContainer.addEventListener('pointerdown', onPointerDownWithDragFlag);
+    window.addEventListener('pointermove', onPointerMoveWithDragFlag);
+    window.addEventListener('pointerup', onPointerUp);
+
+    // Click handler (with drag prevention)
+    carouselContainer.addEventListener('click', onItemClickPreventIfDrag);
+
+    // Init carousel display
+    initCarousel();
+  }
+
+  // Start
+  init();
 
 })();
 </script>
+
 </body>
 </html>

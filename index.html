@@ -230,6 +230,7 @@
     width: 20px;
     height: 20px;
   }
+
 </style>
 </head>
 <body>
@@ -316,6 +317,7 @@
   let isDragging = false;
   let dragStartX = 0;
   let lastRotationY = 0;
+  let animationFrameId = null;
   const radius = 350;
 
   // Playback state
@@ -327,6 +329,7 @@
   let easterEggActive = false;
   let easterEggTimeout = null;
   let easterEggColors = ['red', 'green', 'blue'];
+  let easterEggColorIndex = 0;
   let easterEggFlashInterval = null;
   const easterEggDuration = 20000; // 20 seconds
 
@@ -448,14 +451,7 @@
   }
 
   // Playback controls handlers
-  playbackExitBtn.addEventListener('click', () => {
-    closePlayback();
-  });
-  playbackRewindBtn.addEventListener('click', () => {
-    if (currentVideo) {
-      currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 5);
-    }
-  });
+  playbackExitBtn.addEventListener('click', closePlayback);
   playbackPlayBtn.addEventListener('click', () => {
     if (!currentVideo) return;
     if (currentVideo.paused) {
@@ -468,69 +464,101 @@
       pauseIcon.style.display = 'none';
     }
   });
+  playbackRewindBtn.addEventListener('click', () => {
+    if (!currentVideo) return;
+    currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 5);
+  });
   playbackForwardBtn.addEventListener('click', () => {
-    if (currentVideo) {
-      currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 5);
-    }
+    if (!currentVideo) return;
+    currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 5);
   });
   playbackMuteBtn.addEventListener('click', () => {
     if (!currentVideo) return;
     isMuted = !isMuted;
     currentVideo.muted = isMuted;
-    if (isMuted) {
-      volumeOnIcon.style.display = 'none';
-      volumeOffIcon.style.display = 'inline';
-    } else {
-      volumeOnIcon.style.display = 'inline';
-      volumeOffIcon.style.display = 'none';
-    }
+    volumeOnIcon.style.display = isMuted ? 'none' : 'inline';
+    volumeOffIcon.style.display = isMuted ? 'inline' : 'none';
   });
 
-  // Keyboard shortcuts
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
+  // Keyboard controls for playback (ESC to exit)
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && currentPlayingIndex !== null) {
       closePlayback();
     }
-    if (e.key.toLowerCase() === 'g') {
-      easterEggKeyCount++;
-      if (easterEggKeyTimeout) clearTimeout(easterEggKeyTimeout);
-      easterEggKeyTimeout = setTimeout(() => {
-        easterEggKeyCount = 0;
-      }, 1000);
-      if (easterEggKeyCount >= 4) {
-        triggerEasterEgg();
-        easterEggKeyCount = 0;
-      }
+  });
+
+  // Carousel drag rotation logic
+  carouselContainer.addEventListener('mousedown', e => {
+    isDragging = true;
+    dragStartX = e.clientX;
+    lastRotationY = rotationY;
+    carouselContainer.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
+  document.addEventListener('mouseup', e => {
+    if (isDragging) {
+      isDragging = false;
+      carouselContainer.style.cursor = 'grab';
+    }
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const deltaX = e.clientX - dragStartX;
+    rotationY = lastRotationY + deltaX * 0.3; // sensitivity
+    updateCarouselPositions();
+  });
+
+  // Touch support for carousel drag
+  carouselContainer.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      dragStartX = e.touches[0].clientX;
+      lastRotationY = rotationY;
+    }
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    isDragging = false;
+  });
+  document.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    if (e.touches.length !== 1) return;
+    const deltaX = e.touches[0].clientX - dragStartX;
+    rotationY = lastRotationY + deltaX * 0.3;
+    updateCarouselPositions();
+  }, { passive: true });
+
+  // Click/tap on carousel item to open playback (videos only)
+  carouselContainer.addEventListener('click', e => {
+    let target = e.target;
+    while (target && !target.classList.contains('carousel-item')) {
+      target = target.parentElement;
+    }
+    if (!target) return;
+    const idx = items.findIndex(i => i.element === target);
+    if (idx === -1) return;
+    if (items[idx].type === 'video') {
+      openItem(idx);
     }
   });
 
-  // Drag and drop handlers
-  function onDragOver(e) {
+  // Drag & Drop handlers - FIXED with preventDefault & stopPropagation to avoid browser opening new tabs
+  // Also global dragover & drop prevent default to stop any native behavior outside drop zone
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => e.preventDefault());
+
+  carouselContainer.addEventListener('dragover', e => {
     e.preventDefault();
-    e.stopPropagation();
     e.dataTransfer.dropEffect = 'copy';
-  }
-
-  function onDrop(e) {
+  });
+  carouselContainer.addEventListener('drop', e => {
     e.preventDefault();
     e.stopPropagation();
 
-    let files = [];
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      files = e.dataTransfer.files;
-    } else if (e.dataTransfer.items) {
-      // Firefox fix: use dataTransfer.items
-      files = [];
-      for (let i = 0; i < e.dataTransfer.items.length; i++) {
-        if (e.dataTransfer.items[i].kind === 'file') {
-          const f = e.dataTransfer.items[i].getAsFile();
-          if (f) files.push(f);
-        }
-      }
-    }
-    if (files.length === 0) return;
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
 
     Array.from(files).forEach(file => {
+      if (!file.type) return;
       if (file.type.startsWith('image/')) {
         const url = URL.createObjectURL(file);
         addItem('image', url);
@@ -539,119 +567,100 @@
         addItem('video', url);
       }
     });
-  }
-
-  carouselContainer.addEventListener('dragover', onDragOver);
-  carouselContainer.addEventListener('drop', onDrop);
-
-  // Drag to rotate carousel
-  carouselContainer.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return; // left mouse only
-    isDragging = true;
-    dragStartX = e.clientX;
-    lastRotationY = rotationY;
-    carouselContainer.style.cursor = 'grabbing';
-    e.preventDefault();
   });
 
-  window.addEventListener('pointerup', (e) => {
-    if (isDragging) {
-      isDragging = false;
-      carouselContainer.style.cursor = 'grab';
-    }
-  });
-
-  window.addEventListener('pointermove', (e) => {
-    if (!isDragging) return;
-    const deltaX = e.clientX - dragStartX;
-    const rotationSpeed = 0.3;
-    rotationY = lastRotationY + deltaX * rotationSpeed;
-    updateCarouselPositions();
-  });
-
-  // Click to open playback (only on videos)
-  carouselContainer.addEventListener('click', (e) => {
-    if (e.target.closest('.carousel-item')) {
-      const clickedElement = e.target.closest('.carousel-item');
-      const index = items.findIndex(item => item.element === clickedElement);
-      if (index !== -1 && items[index].type === 'video') {
-        openItem(index);
+  // Keyboard easter egg: press G 4 times quickly to activate
+  document.addEventListener('keydown', e => {
+    if (e.key.toLowerCase() === 'g') {
+      easterEggKeyCount++;
+      if (easterEggKeyTimeout) clearTimeout(easterEggKeyTimeout);
+      easterEggKeyTimeout = setTimeout(() => {
+        easterEggKeyCount = 0;
+      }, 1000);
+      if (easterEggKeyCount === 4) {
+        easterEggKeyCount = 0;
+        triggerEasterEgg();
       }
     }
   });
 
-  // Instructions overlay close
-  closeInstructionsBtn.addEventListener('click', () => {
-    instructionsOverlay.style.display = 'none';
+  // Easter egg function
+  function triggerEasterEgg() {
+    if (easterEggActive) return; // Already active
+
+    easterEggActive = true;
+
+    // Flash body background colors cycling
+    easterEggFlashInterval = setInterval(() => {
+      document.body.style.backgroundColor = easterEggColors[easterEggColorIndex];
+      easterEggColorIndex = (easterEggColorIndex + 1) % easterEggColors.length;
+    }, 300);
+
+    // Play audio
+    easterEggAudio.play();
+
+    // Stop after duration
+    setTimeout(() => {
+      clearInterval(easterEggFlashInterval);
+      document.body.style.backgroundColor = '';
+      easterEggActive = false;
+      easterEggAudio.pause();
+      easterEggAudio.currentTime = 0;
+    }, easterEggDuration);
+  }
+
+  // Tribute button toggles tribute overlay
+  tributeBtn.addEventListener('click', () => {
+    if (tributeOverlay.style.display === 'flex') {
+      closeTribute();
+    } else {
+      openTribute();
+    }
   });
 
-  // Tribute button
-  tributeBtn.addEventListener('click', () => {
+  function openTribute() {
     tributeOverlay.style.display = 'flex';
     tributeOverlay.setAttribute('aria-hidden', 'false');
     tributeText.style.opacity = '0';
-    tributeText.textContent = `🇬🇷 This tribute honors Greece: proud, strong, and rich in history.
-May its spirit live forever! 🇬🇷`;
-    tributeVideo.src = tributeVideoUrl;
-    tributeVideo.play();
+    tributeText.textContent = "Greece forever 🇬🇷 — the cradle of democracy and culture.";
     setTimeout(() => {
       tributeText.style.opacity = '1';
     }, 100);
-  });
 
-  // Clicking outside tribute text or pressing ESC closes tribute
-  tributeOverlay.addEventListener('click', (e) => {
-    if (e.target === tributeOverlay) {
-      closeTribute();
-    }
-  });
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && tributeOverlay.style.display === 'flex') {
-      closeTribute();
-    }
-  });
+    tributeVideo.src = tributeVideoUrl;
+    tributeVideo.volume = 0.3;
+    tributeVideo.play();
+  }
 
   function closeTribute() {
     tributeOverlay.style.display = 'none';
     tributeOverlay.setAttribute('aria-hidden', 'true');
     tributeVideo.pause();
     tributeVideo.currentTime = 0;
+    tributeVideo.src = '';
   }
 
-  // Easter egg flashing
-  function triggerEasterEgg() {
-    if (easterEggActive) return;
-    easterEggActive = true;
+  tributeOverlay.addEventListener('click', e => {
+    if (e.target === tributeOverlay) {
+      closeTribute();
+    }
+  });
 
-    closePlayback();
-    items.forEach(({ element }) => element.style.display = 'none');
+  // Instructions overlay close button
+  closeInstructionsBtn.addEventListener('click', () => {
+    instructionsOverlay.style.display = 'none';
+  });
 
-    let flashCount = 0;
-    easterEggFlashInterval = setInterval(() => {
-      document.body.style.backgroundColor = easterEggColors[flashCount % easterEggColors.length];
-      flashCount++;
-    }, 300);
+  // Initial setup
+  // Add a nice welcome image and a sample video item for demo
+  addItem('image', 'https://upload.wikimedia.org/wikipedia/commons/5/57/Windows_7_Logo.svg');
+  addItem('video', 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm');
 
-    easterEggAudio.currentTime = 0;
-    easterEggAudio.play();
-
-    easterEggTimeout = setTimeout(() => {
-      clearInterval(easterEggFlashInterval);
-      document.body.style.backgroundColor = ''; // reset
-
-      easterEggAudio.pause();
-      easterEggAudio.currentTime = 0;
-
-      items.forEach(({ element }) => element.style.display = '');
-      easterEggActive = false;
-    }, easterEggDuration);
-  }
-
-  // Initialize
+  // Initialize carousel container div
   initCarousel();
 
-  // Show instructions overlay initially
-  instructionsOverlay.style.display = 'flex';
+  // Initial cursor style
+  carouselContainer.style.cursor = 'grab';
 
 })();
 </script>

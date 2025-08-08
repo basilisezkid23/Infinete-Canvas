@@ -3,488 +3,553 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Windows 7 Style Flip 3D Canvas</title>
+<title>Windows 7 Style Infinite Canvas</title>
 <style>
-  /* Aero Glass Background */
-  body {
-    margin: 0; height: 100vh; overflow: hidden;
-    background: linear-gradient(135deg, #4a90e2 0%, #1c3c72 100%);
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  /* Base reset and background */
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: linear-gradient(180deg, #dbe9ff 0%, #f0f4fb 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
     user-select: none;
-    display: flex; justify-content: center; align-items: center;
+  }
+  #app {
+    position: relative;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
     perspective: 1500px;
+    background: linear-gradient(to bottom, #e7f0ff, #c4dafc);
   }
-  #container {
-    position: relative;
+
+  /* Carousel container */
+  #carousel {
     width: 90vw;
-    height: 80vh;
-    background: rgba(255 255 255 / 0.1);
-    border-radius: 15px;
-    box-shadow:
-      0 0 15px rgba(0,0,0,0.3),
-      inset 0 0 50px rgba(255 255 255 / 0.2);
-    backdrop-filter: blur(20px);
-    overflow: visible;
-    transform-style: preserve-3d;
-  }
-
-  /* Windows (images/videos) */
-  .window {
+    height: 60vh;
     position: absolute;
-    top: 50%; left: 50%;
-    width: 240px; height: 160px;
-    margin: -80px -120px;
-    border-radius: 8px;
-    background: rgba(255 255 255 / 0.85);
-    box-shadow:
-      0 8px 16px rgba(0,0,0,0.3),
-      0 0 6px rgba(255 255 255, 0.6);
-    overflow: hidden;
+    top: 50%;
+    left: 50%;
+    transform-style: preserve-3d;
+    transform-origin: 50% 50% 0;
+    transform: translate(-50%, -50%) rotateY(0deg);
+    transition: transform 0.3s ease-out;
     cursor: grab;
-    will-change: transform, opacity;
-    user-select: none;
-    transition:
-      box-shadow 0.3s ease,
-      opacity 0.5s ease,
-      transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-  }
-  .window:active {
-    cursor: grabbing;
-  }
-  .window.selected {
-    box-shadow:
-      0 12px 28px rgba(0,0,0,0.6),
-      0 0 10px rgba(255 255 255, 0.9);
-    z-index: 999;
-  }
-  .window img,
-  .window video {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    pointer-events: none;
-    user-select: none;
   }
 
-  /* Center large playback */
-  #playbackOverlay {
-    position: fixed;
-    top:0; left:0; right:0; bottom:0;
-    background: rgba(0,0,0,0.85);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s ease;
-    z-index: 10000;
-    flex-direction: column;
-  }
-  #playbackOverlay.active {
-    opacity: 1;
-    pointer-events: all;
-  }
-  #playbackVideoContainer {
-    position: relative;
-    width: 80vw;
-    max-width: 960px;
-    max-height: 54vw; /* 16:9 ratio */
-    background: #000;
+  /* Each item in carousel */
+  .item {
+    position: absolute;
+    width: 240px;
+    height: 135px; /* 16:9 ratio */
     border-radius: 12px;
-    overflow: hidden;
     box-shadow:
-      0 20px 40px rgba(0,0,0,0.8);
-    transform-style: preserve-3d;
+      0 0 12px rgba(0,0,0,0.15),
+      inset 0 0 8px rgba(255,255,255,0.25);
+    background: #000;
+    overflow: hidden;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.5s;
+    user-select: none;
   }
-  #playbackVideo {
+  .item img, .item video {
     width: 100%;
     height: 100%;
-    background: black;
-    display: block;
-    outline: none;
+    object-fit: cover;
+    border-radius: 12px;
+    pointer-events: none; /* disables interaction on media itself */
+  }
+  .item:hover {
+    box-shadow:
+      0 0 30px rgba(50,120,255,0.8),
+      inset 0 0 10px rgba(255,255,255,0.4);
   }
 
-  /* Playback Controls */
-  #controls {
-    display: flex;
-    justify-content: center;
+  /* Enlarge overlay */
+  #overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    display: none;
     align-items: center;
-    background: rgba(30,30,30,0.8);
-    border-radius: 0 0 12px 12px;
-    padding: 8px 12px;
-    user-select: none;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(12px);
   }
-  #controls button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 22px;
-    margin: 0 12px;
-    cursor: pointer;
-    filter: drop-shadow(0 0 1px black);
-    transition: color 0.25s ease;
+  #overlay.active {
+    display: flex;
   }
-  #controls button:hover {
-    color: #4a90e2;
+
+  #overlay video,
+  #overlay img {
+    max-width: 85vw;
+    max-height: 80vh;
+    border-radius: 12px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    background: black;
   }
-  #exitBtn {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 28px;
-    color: white;
+
+  /* Video playback controls container */
+  #videoControls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    align-items: center;
+    background: rgba(255 255 255 / 0.15);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 8px 20px;
+    gap: 16px;
+    z-index: 1100;
+  }
+
+  #videoControls.show {
+    display: flex;
+  }
+
+  /* Buttons in controls */
+  #videoControls button {
     background: transparent;
     border: none;
     cursor: pointer;
-    filter: drop-shadow(0 0 3px black);
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 0 2px black);
   }
-  #exitBtn:hover {
-    color: #ff5555;
+  #videoControls button svg {
+    fill: white;
+    width: 22px;
+    height: 22px;
+  }
+  #videoControls button:hover svg {
+    fill: #1e90ff;
   }
 
-  /* Tooltip text on buttons */
-  #controls button[title] {
-    position: relative;
+  /* Hide scrollbar on carousel container */
+  #carousel::-webkit-scrollbar {
+    display: none;
   }
-  #controls button[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 150%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0,0,0,0.8);
-    color: white;
-    font-size: 12px;
-    padding: 3px 6px;
-    border-radius: 4px;
-    white-space: nowrap;
+
+  /* Screen flash for Easter egg */
+  #flashOverlay {
     pointer-events: none;
-    user-select: none;
-    z-index: 10;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: 9999;
+    display: none;
   }
+
 </style>
 </head>
 <body>
-
-<div id="container"></div>
-
-<!-- Playback Overlay -->
-<div id="playbackOverlay" aria-hidden="true">
-  <div id="playbackVideoContainer">
-    <button id="exitBtn" aria-label="Exit Video Playback">&times;</button>
-    <video id="playbackVideo" tabindex="0"></video>
-    <div id="controls" aria-label="Video Playback Controls">
-      <button id="playPauseBtn" title="Play/Pause" aria-pressed="false">▶️</button>
-      <button id="rewindBtn" title="Rewind 10s">⏪</button>
-      <button id="fastForwardBtn" title="Fast Forward 10s">⏩</button>
-      <button id="muteBtn" title="Mute/Unmute" aria-pressed="false">🔈</button>
+  <div id="app" tabindex="0">
+    <div id="carousel" title="Drop images or videos here"></div>
+    <div id="overlay" aria-label="Media viewer"></div>
+    <div id="videoControls" aria-label="Video playback controls">
+      <button id="btnExit" title="Exit Playback" aria-label="Exit Playback">
+        <svg viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <button id="btnRewind" title="Rewind 10s" aria-label="Rewind 10 seconds">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 19 2 12 11 5 11 19"/><polygon points="22 19 13 12 22 5 22 19"/></svg>
+      </button>
+      <button id="btnPlayPause" title="Play / Pause" aria-label="Play or Pause">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="white"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+        <svg id="pauseIcon" viewBox="0 0 24 24" fill="white" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <button id="btnFastForward" title="Fast Forward 10s" aria-label="Fast forward 10 seconds">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 5 22 12 13 19 13 5"/><polygon points="2 5 11 12 2 19 2 5"/></svg>
+      </button>
+      <button id="btnMute" title="Mute / Unmute" aria-label="Mute or Unmute">
+        <svg id="unmutedIcon" viewBox="0 0 24 24" fill="white">
+          <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+          <path d="M16.5 12a4.5 4.5 0 0 1-4.5 4.5"/>
+          <path d="M19.5 12a7.5 7.5 0 0 0-7.5-7.5"/>
+        </svg>
+        <svg id="mutedIcon" viewBox="0 0 24 24" fill="white" style="display:none">
+          <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+          <line x1="18" y1="6" x2="6" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          <line x1="6" y1="6" x2="18" y2="18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
     </div>
+    <canvas id="flashOverlay"></canvas>
   </div>
-</div>
 
 <script>
 (() => {
-  // Setup
-  const container = document.getElementById('container');
-  const playbackOverlay = document.getElementById('playbackOverlay');
-  const playbackVideo = document.getElementById('playbackVideo');
-  const exitBtn = document.getElementById('exitBtn');
-  const playPauseBtn = document.getElementById('playPauseBtn');
-  const rewindBtn = document.getElementById('rewindBtn');
-  const fastForwardBtn = document.getElementById('fastForwardBtn');
-  const muteBtn = document.getElementById('muteBtn');
+  const app = document.getElementById('app');
+  const carousel = document.getElementById('carousel');
+  const overlay = document.getElementById('overlay');
+  const videoControls = document.getElementById('videoControls');
+  const flashOverlay = document.getElementById('flashOverlay');
+  const ctx = flashOverlay.getContext('2d');
 
-  let windows = []; // Array of {el, type, src, rotationIndex, angle}
-  let angle = 0; // rotation angle in degrees (float)
+  // Setup flash canvas size
+  function resizeFlashCanvas() {
+    flashOverlay.width = window.innerWidth;
+    flashOverlay.height = window.innerHeight;
+  }
+  resizeFlashCanvas();
+  window.addEventListener('resize', resizeFlashCanvas);
+
+  // Store media items
+  let items = [];
+  let rotationY = 0;
   let isDragging = false;
   let dragStartX = 0;
-  let dragCurrentX = 0;
-  let lastDragX = 0;
+  let dragStartRotation = 0;
 
-  const radius = 350; // radius of 3D circle
-  const windowWidth = 240;
-  const windowHeight = 160;
+  // Playback vars
+  let currentVideo = null;
 
-  // Playback mode
-  let playbackActive = false;
-  let currentPlaybackIndex = -1;
+  // Easter egg vars
+  let gPressCount = 0;
+  const gPressRequired = 4;
+  let easterActive = false;
 
-  // Helper: create DOM window for image/video
-  function createWindow(src, type) {
-    const el = document.createElement('div');
-    el.classList.add('window');
-    el.dataset.type = type;
-    el.dataset.src = src;
+  // Audio element for easter egg
+  const easterAudio = new Audio('https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/Lensko%20-%20Let%27s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
+  easterAudio.preload = 'auto';
 
-    if(type === 'video') {
-      const vid = document.createElement('video');
-      vid.src = src;
-      vid.muted = true;
-      vid.playsInline = true;
-      vid.preload = 'auto';
-      vid.loop = false;
-      vid.controls = false;
-      vid.style.pointerEvents = 'none';
-      el.appendChild(vid);
-    } else if(type === 'image') {
-      const img = document.createElement('img');
-      img.src = src;
-      img.draggable = false;
-      el.appendChild(img);
-    }
-
-    // Dragging the individual window in 3D rotation space disables rotation drag temporarily (optional)
-    el.addEventListener('mousedown', (e) => {
-      e.stopPropagation(); // don't trigger container drag
-    });
-
-    // Click to open in playback mode
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if(playbackActive) return; // ignore if playback open
-      enterPlaybackMode(windows.indexOf(el));
-    });
-
-    container.appendChild(el);
-    windows.push(el);
-    updateWindowsPositions();
-
-    return el;
-  }
-
-  // Arrange windows in a 3D circle based on current angle
-  function updateWindowsPositions() {
-    const count = windows.length;
-    if(count === 0) return;
-
-    windows.forEach((win, i) => {
-      const deg = (360 / count) * i + angle;
-      const rad = deg * Math.PI / 180;
-
-      // Calculate 3D circle position
-      // We'll position windows on X/Z circle (Y fixed)
+  // Utility: place items in circle (carousel)
+  function positionItems() {
+    const itemCount = items.length;
+    const radius = Math.min(window.innerWidth, window.innerHeight) / 2.5;
+    for(let i = 0; i < itemCount; i++) {
+      const angle = (360 / itemCount) * i + rotationY;
+      const rad = angle * (Math.PI / 180);
       const x = radius * Math.sin(rad);
       const z = radius * Math.cos(rad);
-
-      // CSS 3D transforms:
-      // translateX, translateZ, rotateY to face front
-      // Windows closer to front get larger scale and higher opacity for depth illusion
-
-      // Calculate scale from z: front is z close to radius, back is negative radius
-      const scale = 0.5 + 0.5 * ( (z + radius) / (2 * radius) ); // from 0.5 to 1
-      const opacity = 0.3 + 0.7 * ( (z + radius) / (2 * radius) ); // from 0.3 to 1
-
-      // TranslateZ and scale for 3D effect
-      // Since container has perspective, translateZ works properly
-      win.style.transform = `
+      const item = items[i].el;
+      // Place item with 3D transform
+      item.style.transform = `
         translateX(${x}px)
         translateZ(${z}px)
-        translateY(-50%)
-        scale(${scale.toFixed(3)})
-        rotateY(${deg + 180}deg)
+        translateY(${Math.sin(rad * 3) * 20}px)
+        scale(${z / radius + 0.5})
       `;
-      win.style.zIndex = Math.floor(scale * 1000); // closer = higher zIndex
-      win.style.opacity = opacity.toFixed(2);
-      win.style.pointerEvents = playbackActive ? 'none' : 'auto'; // disable interaction in playback mode
+      item.style.zIndex = Math.round(z);
+      // Adjust opacity by z to simulate depth fade
+      item.style.opacity = 0.4 + 0.6 * ((z / radius + 1) / 2);
+      // If hidden by easter egg hide all
+      item.style.display = easterActive ? 'none' : 'block';
+    }
+  }
 
-      // Reset video playback small preview: mute and pause except focused video
-      if(win.dataset.type === 'video') {
-        const vid = win.querySelector('video');
-        if(!playbackActive) {
-          vid.muted = true;
-          vid.pause();
-          vid.currentTime = 0;
-        }
-      }
+  // Create new media item element for image/video
+  function createMediaItem(src, type) {
+    const el = document.createElement('div');
+    el.className = 'item';
+    el.tabIndex = 0;
+    let media;
+    if(type === 'video') {
+      media = document.createElement('video');
+      media.src = src;
+      media.muted = false;
+      media.playsInline = true;
+      media.preload = 'auto';
+      media.loop = false;
+      media.style.pointerEvents = 'none'; // disable native controls interaction
+      media.autoplay = false;
+      media.controls = false;
+      el.appendChild(media);
+    } else if(type === 'image') {
+      media = document.createElement('img');
+      media.src = src;
+      el.appendChild(media);
+    }
+    // Attach click handler to open overlay
+    el.addEventListener('click', () => openOverlay(el, media, type));
+    carousel.appendChild(el);
+    items.push({el, media, type});
+    positionItems();
+  }
+
+  // Open overlay with enlarged media
+  function openOverlay(itemEl, media, type) {
+    if (easterActive) return; // block if easter active
+    overlay.innerHTML = '';
+    overlay.classList.add('active');
+    if(type === 'video') {
+      const video = document.createElement('video');
+      video.src = media.src;
+      video.controls = false;
+      video.autoplay = true;
+      video.muted = false;
+      video.style.maxWidth = '85vw';
+      video.style.maxHeight = '80vh';
+      overlay.appendChild(video);
+      currentVideo = video;
+      showVideoControls(true);
+    } else if(type === 'image') {
+      const img = document.createElement('img');
+      img.src = media.src;
+      overlay.appendChild(img);
+      currentVideo = null;
+      showVideoControls(false);
+    }
+    // Animate other items falling down smoothly
+    items.forEach(({el}) => {
+      if(el !== itemEl) el.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+      if(el !== itemEl) el.style.transform += ' translateY(150vh)';
+      if(el !== itemEl) el.style.opacity = '0';
     });
   }
 
-  // Drag rotation handlers on container
-  container.addEventListener('mousedown', (e) => {
-    if(playbackActive) return; // no drag in playback
+  // Close overlay
+  function closeOverlay() {
+    if(!overlay.classList.contains('active')) return;
+    overlay.classList.remove('active');
+    // Reset all items transform and opacity
+    items.forEach(({el}) => {
+      el.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+      el.style.transform = el.style.transform.replace(/ translateY\(150vh\)/g, '');
+      el.style.opacity = '1';
+    });
+    // Stop video if playing
+    if(currentVideo) {
+      currentVideo.pause();
+      currentVideo.src = '';
+      currentVideo = null;
+      showVideoControls(false);
+    }
+  }
+
+  // Show or hide video controls
+  function showVideoControls(show) {
+    if(show && currentVideo) {
+      videoControls.classList.add('show');
+    } else {
+      videoControls.classList.remove('show');
+    }
+  }
+
+  // Video controls buttons
+  const btnExit = document.getElementById('btnExit');
+  const btnPlayPause = document.getElementById('btnPlayPause');
+  const btnRewind = document.getElementById('btnRewind');
+  const btnFastForward = document.getElementById('btnFastForward');
+  const btnMute = document.getElementById('btnMute');
+  const playIcon = document.getElementById('playIcon');
+  const pauseIcon = document.getElementById('pauseIcon');
+  const mutedIcon = document.getElementById('mutedIcon');
+  const unmutedIcon = document.getElementById('unmutedIcon');
+
+  btnExit.onclick = () => closeOverlay();
+  btnRewind.onclick = () => {
+    if(currentVideo) currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 10);
+  };
+  btnFastForward.onclick = () => {
+    if(currentVideo) currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 10);
+  };
+  btnPlayPause.onclick = () => {
+    if(currentVideo) {
+      if(currentVideo.paused) {
+        currentVideo.play();
+        playIcon.style.display = 'none';
+        pauseIcon.style.display = 'block';
+      } else {
+        currentVideo.pause();
+        playIcon.style.display = 'block';
+        pauseIcon.style.display = 'none';
+      }
+    }
+  };
+  btnMute.onclick = () => {
+    if(currentVideo) {
+      currentVideo.muted = !currentVideo.muted;
+      if(currentVideo.muted) {
+        mutedIcon.style.display = 'block';
+        unmutedIcon.style.display = 'none';
+      } else {
+        mutedIcon.style.display = 'none';
+        unmutedIcon.style.display = 'block';
+      }
+    }
+  };
+
+  // Update play/pause icons on video events
+  function syncPlayPauseIcons() {
+    if(!currentVideo) return;
+    if(currentVideo.paused) {
+      playIcon.style.display = 'block';
+      pauseIcon.style.display = 'none';
+    } else {
+      playIcon.style.display = 'none';
+      pauseIcon.style.display = 'block';
+    }
+  }
+
+  // Add keyboard ESC to close overlay
+  app.addEventListener('keydown', e => {
+    if(e.key === 'Escape') {
+      closeOverlay();
+    }
+  });
+
+  // Drag to rotate carousel horizontally - free spin with inertia
+  let velocity = 0;
+  let momentumID = null;
+  carousel.style.cursor = 'grab';
+
+  carousel.addEventListener('pointerdown', e => {
+    if(e.pointerType !== 'mouse' && e.pointerType !== 'touch') return;
     isDragging = true;
     dragStartX = e.clientX;
-    lastDragX = dragStartX;
-    container.style.cursor = 'grabbing';
-  });
-  window.addEventListener('mouseup', (e) => {
-    if(!isDragging) return;
-    isDragging = false;
-    container.style.cursor = 'grab';
-  });
-  window.addEventListener('mousemove', (e) => {
-    if(!isDragging) return;
-    const dx = e.clientX - lastDragX;
-    lastDragX = e.clientX;
-    angle += dx * 0.3; // rotation speed multiplier
-    angle = angle % 360;
-    updateWindowsPositions();
-  });
-
-  container.style.cursor = 'grab';
-
-  // Drag-and-drop file handling for images/videos only
-  window.addEventListener('dragover', e => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-  });
-  window.addEventListener('drop', async e => {
-    e.preventDefault();
-    if(playbackActive) return;
-
-    for(let file of e.dataTransfer.files) {
-      const type = file.type;
-      const url = URL.createObjectURL(file);
-
-      if(type.startsWith('image/')) {
-        createWindow(url, 'image');
-      } else if(type.startsWith('video/')) {
-        createWindow(url, 'video');
-      }
+    dragStartRotation = rotationY;
+    velocity = 0;
+    carousel.style.cursor = 'grabbing';
+    if(momentumID) {
+      cancelAnimationFrame(momentumID);
+      momentumID = null;
     }
-    updateWindowsPositions();
   });
 
-  // Playback mode: open focused video/image
-  function enterPlaybackMode(index) {
-    if(index < 0 || index >= windows.length) return;
-    playbackActive = true;
-    currentPlaybackIndex = index;
-    container.style.pointerEvents = 'none'; // disable canvas interaction
-    playbackOverlay.classList.add('active');
-
-    const win = windows[index];
-    const type = win.dataset.type;
-    const src = win.dataset.src;
-
-    if(type === 'video') {
-      playbackVideo.src = src;
-      playbackVideo.muted = false;
-      playbackVideo.currentTime = 0;
-      playbackVideo.play();
-      muteBtn.textContent = '🔈';
-      muteBtn.setAttribute('aria-pressed', 'false');
-      playPauseBtn.textContent = '⏸️';
-      playPauseBtn.setAttribute('aria-pressed', 'true');
-    } else if(type === 'image') {
-      playbackVideo.pause();
-      playbackVideo.removeAttribute('src');
-      playbackVideo.load();
-      // For images, we simply show the image full screen as background
-      playbackVideo.style.display = 'none';
-      playbackOverlay.style.backgroundImage = `url(${src})`;
-      playbackOverlay.style.backgroundSize = 'contain';
-      playbackOverlay.style.backgroundRepeat = 'no-repeat';
-      playbackOverlay.style.backgroundPosition = 'center';
+  window.addEventListener('pointerup', e => {
+    if(isDragging) {
+      isDragging = false;
+      carousel.style.cursor = 'grab';
+      applyMomentum();
     }
+  });
 
-    // Animate windows "falling down"
-    windows.forEach((w, i) => {
-      if(i === index) {
-        w.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease';
-        w.style.transform += ' translateY(0) scale(1.1)';
-        w.style.zIndex = 1000;
-        w.style.opacity = 1;
-        w.classList.add('selected');
-      } else {
-        w.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease';
-        w.style.transform += ' translateY(400px)';
-        w.style.opacity = '0.3';
-        w.classList.remove('selected');
-      }
-    });
+  window.addEventListener('pointercancel', () => {
+    if(isDragging) {
+      isDragging = false;
+      carousel.style.cursor = 'grab';
+      applyMomentum();
+    }
+  });
+
+  window.addEventListener('pointermove', e => {
+    if(!isDragging) return;
+    const deltaX = e.clientX - dragStartX;
+    // Map pixel movement to degrees rotation
+    const rotationDelta = deltaX * 0.3; 
+    rotationY = dragStartRotation + rotationDelta;
+    velocity = rotationDelta - velocity;
+    positionItems();
+  });
+
+  // Momentum after drag ends
+  function applyMomentum() {
+    if(Math.abs(velocity) < 0.1) return;
+    velocity *= 0.95; // friction
+    rotationY += velocity;
+    positionItems();
+    momentumID = requestAnimationFrame(applyMomentum);
   }
 
-  // Exit playback mode: reverse animations & reset
-  function exitPlaybackMode() {
-    if(!playbackActive) return;
-    playbackActive = false;
-    currentPlaybackIndex = -1;
-    container.style.pointerEvents = 'auto';
-    playbackOverlay.classList.remove('active');
-    playbackVideo.style.display = '';
-    playbackVideo.pause();
-    playbackVideo.removeAttribute('src');
-    playbackVideo.load();
+  // Allow mouse wheel to rotate carousel gently
+  app.addEventListener('wheel', e => {
+    e.preventDefault();
+    rotationY += e.deltaY * 0.5;
+    positionItems();
+  }, {passive: false});
 
-    playbackOverlay.style.backgroundImage = '';
-    windows.forEach(w => {
-      w.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease';
-      w.style.opacity = '1';
-      w.classList.remove('selected');
-    });
-    updateWindowsPositions();
-  }
+  // Dragging prevents text selection
+  app.addEventListener('selectstart', e => {
+    if(isDragging) e.preventDefault();
+  });
 
-  // Playback Controls Handlers
-  playPauseBtn.addEventListener('click', () => {
-    if(playbackVideo.paused) {
-      playbackVideo.play();
-      playPauseBtn.textContent = '⏸️';
-      playPauseBtn.setAttribute('aria-pressed', 'true');
+  // File drop support for images/videos
+  app.addEventListener('dragover', e => {
+    e.preventDefault();
+  });
+  app.addEventListener('drop', e => {
+    e.preventDefault();
+    if(easterActive) return; // block during easter egg
+    const dt = e.dataTransfer;
+    if(!dt) return;
+    for(const file of dt.files) {
+      if(file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        createMediaItem(url, 'image');
+      } else if(file.type.startsWith('video/')) {
+        const url = URL.createObjectURL(file);
+        createMediaItem(url, 'video');
+      }
+    }
+  });
+
+  // Easter egg: pressing G 4 times triggers effect
+  app.addEventListener('keydown', e => {
+    if(e.key.toLowerCase() === 'g') {
+      if(easterActive) return;
+      gPressCount++;
+      if(gPressCount === gPressRequired) {
+        triggerEasterEgg();
+        gPressCount = 0;
+      }
     } else {
-      playbackVideo.pause();
-      playPauseBtn.textContent = '▶️';
-      playPauseBtn.setAttribute('aria-pressed', 'false');
-    }
-  });
-  rewindBtn.addEventListener('click', () => {
-    playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 10);
-  });
-  fastForwardBtn.addEventListener('click', () => {
-    playbackVideo.currentTime = Math.min(playbackVideo.duration || playbackVideo.currentTime + 10, playbackVideo.duration);
-  });
-  muteBtn.addEventListener('click', () => {
-    playbackVideo.muted = !playbackVideo.muted;
-    muteBtn.textContent = playbackVideo.muted ? '🔇' : '🔈';
-    muteBtn.setAttribute('aria-pressed', playbackVideo.muted ? 'true' : 'false');
-  });
-  exitBtn.addEventListener('click', exitPlaybackMode);
-
-  // Keyboard support
-  window.addEventListener('keydown', (e) => {
-    if(!playbackActive) return;
-    switch(e.key) {
-      case 'Escape':
-        exitPlaybackMode();
-        break;
-      case ' ':
-        e.preventDefault();
-        if(playbackVideo.paused) playbackVideo.play();
-        else playbackVideo.pause();
-        break;
-      case 'ArrowLeft':
-        playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 5);
-        break;
-      case 'ArrowRight':
-        playbackVideo.currentTime = Math.min(playbackVideo.duration || playbackVideo.currentTime + 5, playbackVideo.duration);
-        break;
-      case 'm':
-      case 'M':
-        playbackVideo.muted = !playbackVideo.muted;
-        muteBtn.textContent = playbackVideo.muted ? '🔇' : '🔈';
-        muteBtn.setAttribute('aria-pressed', playbackVideo.muted ? 'true' : 'false');
-        break;
+      gPressCount = 0;
     }
   });
 
-  // Initialize with cursor style and empty
-  container.style.cursor = 'grab';
+  // Flash effect colors for 10 seconds
+  const flashColors = ['#ff0000', '#00ff00', '#0000ff'];
+  let flashIndex = 0;
+  let flashInterval = null;
 
-  // (Optional) Demo files for testing, remove/comment out in production
-  const demoImages = [
-    'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Example.jpg/320px-Example.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png',
-  ];
-  const demoVideos = [
-    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm',
-  ];
+  function startFlash() {
+    flashOverlay.style.display = 'block';
+    flashInterval = setInterval(() => {
+      ctx.fillStyle = flashColors[flashIndex];
+      ctx.fillRect(0, 0, flashOverlay.width, flashOverlay.height);
+      flashIndex = (flashIndex + 1) % flashColors.length;
+    }, 300);
+  }
+  function stopFlash() {
+    clearInterval(flashInterval);
+    flashOverlay.style.display = 'none';
+    ctx.clearRect(0, 0, flashOverlay.width, flashOverlay.height);
+  }
 
-  demoImages.forEach(url => createWindow(url, 'image'));
-  demoVideos.forEach(url => createWindow(url, 'video'));
+  // Easter egg logic
+  async function triggerEasterEgg() {
+    easterActive = true;
+    // Hide all carousel items
+    items.forEach(({el}) => el.style.display = 'none');
+    closeOverlay();
 
-  updateWindowsPositions();
+    startFlash();
+
+    try {
+      await easterAudio.play();
+    } catch(err) {
+      console.warn('Audio play failed:', err);
+    }
+
+    // Wait 10 seconds
+    await new Promise(resolve => setTimeout(resolve, 10000));
+
+    easterAudio.pause();
+    easterAudio.currentTime = 0;
+
+    stopFlash();
+
+    // Show carousel items again
+    items.forEach(({el}) => el.style.display = 'block');
+
+    easterActive = false;
+  }
+
+  // Initialize with a few sample images/videos to start (optional)
+  // Just for demo, comment or remove later
+  /*
+  createMediaItem('https://picsum.photos/400/225?random=1', 'image');
+  createMediaItem('https://picsum.photos/400/225?random=2', 'image');
+  createMediaItem('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', 'video');
+  */
+
+  // Position items initially
+  positionItems();
+
 })();
 </script>
 </body>

@@ -3,353 +3,489 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Windows 7 Flip3D Style Media Carousel</title>
+<title>Windows 7 Style Flip 3D Canvas</title>
 <style>
-  /* Minimal reset & base */
-  body, html {
-    margin: 0; padding: 0; height: 100%; overflow: hidden;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* Aero Glass Background */
+  body {
+    margin: 0; height: 100vh; overflow: hidden;
+    background: linear-gradient(135deg, #4a90e2 0%, #1c3c72 100%);
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     user-select: none;
+    display: flex; justify-content: center; align-items: center;
+    perspective: 1500px;
+  }
+  #container {
+    position: relative;
+    width: 90vw;
+    height: 80vh;
+    background: rgba(255 255 255 / 0.1);
+    border-radius: 15px;
+    box-shadow:
+      0 0 15px rgba(0,0,0,0.3),
+      inset 0 0 50px rgba(255 255 255 / 0.2);
+    backdrop-filter: blur(20px);
+    overflow: visible;
+    transform-style: preserve-3d;
+  }
+
+  /* Windows (images/videos) */
+  .window {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 240px; height: 160px;
+    margin: -80px -120px;
+    border-radius: 8px;
+    background: rgba(255 255 255 / 0.85);
+    box-shadow:
+      0 8px 16px rgba(0,0,0,0.3),
+      0 0 6px rgba(255 255 255, 0.6);
+    overflow: hidden;
+    cursor: grab;
+    will-change: transform, opacity;
+    user-select: none;
+    transition:
+      box-shadow 0.3s ease,
+      opacity 0.5s ease,
+      transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .window:active {
+    cursor: grabbing;
+  }
+  .window.selected {
+    box-shadow:
+      0 12px 28px rgba(0,0,0,0.6),
+      0 0 10px rgba(255 255 255, 0.9);
+    z-index: 999;
+  }
+  .window img,
+  .window video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  /* Center large playback */
+  #playbackOverlay {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    z-index: 10000;
+    flex-direction: column;
+  }
+  #playbackOverlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  #playbackVideoContainer {
+    position: relative;
+    width: 80vw;
+    max-width: 960px;
+    max-height: 54vw; /* 16:9 ratio */
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow:
+      0 20px 40px rgba(0,0,0,0.8);
+    transform-style: preserve-3d;
+  }
+  #playbackVideo {
+    width: 100%;
+    height: 100%;
+    background: black;
+    display: block;
+    outline: none;
+  }
+
+  /* Playback Controls */
+  #controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(30,30,30,0.8);
+    border-radius: 0 0 12px 12px;
+    padding: 8px 12px;
+    user-select: none;
+  }
+  #controls button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 22px;
+    margin: 0 12px;
+    cursor: pointer;
+    filter: drop-shadow(0 0 1px black);
+    transition: color 0.25s ease;
+  }
+  #controls button:hover {
+    color: #4a90e2;
+  }
+  #exitBtn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    color: white;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    filter: drop-shadow(0 0 3px black);
+  }
+  #exitBtn:hover {
+    color: #ff5555;
+  }
+
+  /* Tooltip text on buttons */
+  #controls button[title] {
+    position: relative;
+  }
+  #controls button[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 150%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+    z-index: 10;
   }
 </style>
 </head>
 <body>
 
+<div id="container"></div>
+
+<!-- Playback Overlay -->
+<div id="playbackOverlay" aria-hidden="true">
+  <div id="playbackVideoContainer">
+    <button id="exitBtn" aria-label="Exit Video Playback">&times;</button>
+    <video id="playbackVideo" tabindex="0"></video>
+    <div id="controls" aria-label="Video Playback Controls">
+      <button id="playPauseBtn" title="Play/Pause" aria-pressed="false">▶️</button>
+      <button id="rewindBtn" title="Rewind 10s">⏪</button>
+      <button id="fastForwardBtn" title="Fast Forward 10s">⏩</button>
+      <button id="muteBtn" title="Mute/Unmute" aria-pressed="false">🔈</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (() => {
-  // Inject CSS dynamically
-  const css = `
-    #app {
-      width: 100vw; height: 100vh;
-      perspective: 1200px;
-      overflow: visible;
-      position: relative;
-      background: rgba(255 255 255 / 0.07);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      display: flex; align-items: center; justify-content: center;
-      touch-action: none;
-      cursor: grab;
-    }
-    #ring {
-      width: 900px; height: 500px;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.1s ease-out;
-    }
-    .window {
-      position: absolute;
-      width: 200px; height: 120px; /* 16:9 aspect ratio */
-      border-radius: 14px;
-      box-shadow: 0 0 20px rgb(255 255 255 / 0.4);
-      overflow: hidden;
-      border: 1.5px solid rgba(255 255 255 / 0.3);
-      background: rgba(255 255 255 / 0.15);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      cursor: pointer;
-      transition:
-        transform 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55),
-        opacity 0.6s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-    }
-    .window video, .window img {
-      pointer-events: none;
-      user-select: none;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    /* Focused fullscreen */
-    .window.focused {
-      position: fixed !important;
-      top: 50% !important;
-      left: 50% !important;
-      width: 80vw !important;
-      height: calc(80vw * 9 / 16) !important; /* maintain 16:9 */
-      max-height: 80vh !important;
-      max-width: calc(80vh * 16 / 9) !important;
-      transform: translate(-50%, -50%) scale(1) !important;
-      z-index: 1000 !important;
-      box-shadow: 0 0 40px 10px rgba(255 255 255 / 0.85);
-      border: 2.5px solid rgba(255 255 255 / 0.7);
-      background: rgba(255 255 255 / 0.25);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      cursor: default;
-      transition:
-        transform 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55),
-        top 0.8s, left 0.8s,
-        width 0.8s, height 0.8s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    /* Other windows fall down */
-    .window.fall-down {
-      transform: translateY(110vh) scale(0.7) !important;
-      opacity: 0 !important;
-      pointer-events: none !important;
-      transition: transform 0.6s ease, opacity 0.6s ease;
-    }
-    /* Close button */
-    #closeBtn {
-      position: fixed;
-      top: 20px;
-      right: 30px;
-      font-size: 28px;
-      font-weight: 700;
-      background: rgba(255 255 255 / 0.25);
-      border: none;
-      border-radius: 16px;
-      color: white;
-      cursor: pointer;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      padding: 6px 14px;
-      z-index: 1500;
-      user-select: none;
-      transition: background-color 0.3s ease;
-      box-shadow: 0 0 15px rgba(255 255 255 / 0.6);
-    }
-    #closeBtn:hover {
-      background: rgba(255 255 255 / 0.45);
-    }
-    /* Drop zone style */
-    #dropZone {
-      position: fixed;
-      inset: 0;
-      border: 4px dashed rgba(255 255 255 / 0.3);
-      border-radius: 20px;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      z-index: 2000;
-      mix-blend-mode: difference;
-    }
-    #dropZone.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  `;
+  // Setup
+  const container = document.getElementById('container');
+  const playbackOverlay = document.getElementById('playbackOverlay');
+  const playbackVideo = document.getElementById('playbackVideo');
+  const exitBtn = document.getElementById('exitBtn');
+  const playPauseBtn = document.getElementById('playPauseBtn');
+  const rewindBtn = document.getElementById('rewindBtn');
+  const fastForwardBtn = document.getElementById('fastForwardBtn');
+  const muteBtn = document.getElementById('muteBtn');
 
-  const styleTag = document.createElement('style');
-  styleTag.textContent = css;
-  document.head.appendChild(styleTag);
-
-  // Create main app container & ring container
-  const app = document.createElement('div');
-  app.id = 'app';
-  document.body.appendChild(app);
-
-  const ring = document.createElement('div');
-  ring.id = 'ring';
-  app.appendChild(ring);
-
-  // Close button (hidden by default)
-  const closeBtn = document.createElement('button');
-  closeBtn.id = 'closeBtn';
-  closeBtn.textContent = '× Close';
-  closeBtn.style.display = 'none';
-  document.body.appendChild(closeBtn);
-
-  // Drop zone indicator
-  const dropZone = document.createElement('div');
-  dropZone.id = 'dropZone';
-  document.body.appendChild(dropZone);
-
-  // State
-  let windows = [];
-  let focusedWindow = null;
-  let rotationY = 0;
+  let windows = []; // Array of {el, type, src, rotationIndex, angle}
+  let angle = 0; // rotation angle in degrees (float)
   let isDragging = false;
   let dragStartX = 0;
-  let lastRotationY = 0;
+  let dragCurrentX = 0;
+  let lastDragX = 0;
 
-  // Carousel radius
-  const radius = 350;
+  const radius = 350; // radius of 3D circle
+  const windowWidth = 240;
+  const windowHeight = 160;
 
-  // Helper: arrange windows in 3D circle
-  function positionWindows() {
-    const N = windows.length;
-    if (N === 0) return;
-    windows.forEach((win, i) => {
-      if (win === focusedWindow) return; // skip focused window positioning
-      const angle = (360 / N) * i + rotationY;
-      win.style.transform = `rotateY(${angle}deg) translateZ(${radius}px)`;
-      win.style.zIndex = 10; // base zIndex
-      win.classList.remove('fall-down');
-      win.classList.remove('focused');
-      win.style.pointerEvents = 'auto';
-      win.style.opacity = '1';
-      win.style.position = 'absolute';
-    });
-  }
+  // Playback mode
+  let playbackActive = false;
+  let currentPlaybackIndex = -1;
 
-  // Add a window (image or video)
-  function addWindow(fileOrUrl) {
-    const url = fileOrUrl instanceof File ? URL.createObjectURL(fileOrUrl) : fileOrUrl;
-    const type = fileOrUrl instanceof File ? fileOrUrl.type : '';
+  // Helper: create DOM window for image/video
+  function createWindow(src, type) {
+    const el = document.createElement('div');
+    el.classList.add('window');
+    el.dataset.type = type;
+    el.dataset.src = src;
 
-    const win = document.createElement('div');
-    win.className = 'window';
-
-    let mediaEl;
-    if (type.startsWith('video/') || /\.mp4|\.webm|\.ogg$/i.test(url)) {
-      mediaEl = document.createElement('video');
-      mediaEl.src = url;
-      mediaEl.controls = false;
-      mediaEl.muted = true;
-      mediaEl.loop = true;
-      mediaEl.autoplay = true;
-      mediaEl.playsInline = true;
-      mediaEl.style.userSelect = 'none';
-      mediaEl.style.pointerEvents = 'none';
-      mediaEl.style.objectFit = 'cover';
-      mediaEl.setAttribute('aria-label', 'Video thumbnail');
-    } else if (type.startsWith('image/') || /\.(png|jpe?g|gif|svg)$/i.test(url)) {
-      mediaEl = document.createElement('img');
-      mediaEl.src = url;
-      mediaEl.alt = 'Image thumbnail';
-      mediaEl.draggable = false;
-    } else {
-      // unsupported file type, ignore
-      return;
+    if(type === 'video') {
+      const vid = document.createElement('video');
+      vid.src = src;
+      vid.muted = true;
+      vid.playsInline = true;
+      vid.preload = 'auto';
+      vid.loop = false;
+      vid.controls = false;
+      vid.style.pointerEvents = 'none';
+      el.appendChild(vid);
+    } else if(type === 'image') {
+      const img = document.createElement('img');
+      img.src = src;
+      img.draggable = false;
+      el.appendChild(img);
     }
 
-    win.appendChild(mediaEl);
-    ring.appendChild(win);
-    windows.push(win);
-    positionWindows();
+    // Dragging the individual window in 3D rotation space disables rotation drag temporarily (optional)
+    el.addEventListener('mousedown', (e) => {
+      e.stopPropagation(); // don't trigger container drag
+    });
 
-    // Click to focus
-    win.addEventListener('click', (e) => {
+    // Click to open in playback mode
+    el.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (focusedWindow) return; // ignore if already focused
-      openFullscreen(win);
-    });
-  }
-
-  // Open fullscreen mode
-  function openFullscreen(win) {
-    focusedWindow = win;
-
-    // Make other windows fall down
-    windows.forEach(w => {
-      if (w !== win) {
-        w.classList.add('fall-down');
-      }
+      if(playbackActive) return; // ignore if playback open
+      enterPlaybackMode(windows.indexOf(el));
     });
 
-    // Style focused window
-    win.classList.add('focused');
-    win.style.position = 'fixed';
-    win.style.zIndex = 1000;
-    win.style.pointerEvents = 'auto';
+    container.appendChild(el);
+    windows.push(el);
+    updateWindowsPositions();
 
-    closeBtn.style.display = 'block';
+    return el;
   }
 
-  // Close fullscreen mode
-  function closeFullscreen() {
-    if (!focusedWindow) return;
-    focusedWindow.classList.remove('focused');
-    focusedWindow.style.position = 'absolute';
-    focusedWindow.style.zIndex = '10';
-    focusedWindow.style.pointerEvents = 'auto';
+  // Arrange windows in a 3D circle based on current angle
+  function updateWindowsPositions() {
+    const count = windows.length;
+    if(count === 0) return;
 
-    windows.forEach(w => w.classList.remove('fall-down'));
-    positionWindows();
+    windows.forEach((win, i) => {
+      const deg = (360 / count) * i + angle;
+      const rad = deg * Math.PI / 180;
 
-    focusedWindow = null;
-    closeBtn.style.display = 'none';
-  }
+      // Calculate 3D circle position
+      // We'll position windows on X/Z circle (Y fixed)
+      const x = radius * Math.sin(rad);
+      const z = radius * Math.cos(rad);
 
-  // Dragging carousel logic
-  app.addEventListener('mousedown', e => {
-    if (focusedWindow) return; // disable drag while focused
-    isDragging = true;
-    dragStartX = e.clientX;
-    lastRotationY = rotationY;
-    app.style.cursor = 'grabbing';
-  });
-  window.addEventListener('mouseup', () => {
-    isDragging = false;
-    app.style.cursor = 'grab';
-  });
-  window.addEventListener('mousemove', e => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStartX;
-    rotationY = lastRotationY + dx * 0.3; // sensitivity
-    positionWindows();
-  });
+      // CSS 3D transforms:
+      // translateX, translateZ, rotateY to face front
+      // Windows closer to front get larger scale and higher opacity for depth illusion
 
-  // Close button click handler
-  closeBtn.addEventListener('click', () => {
-    closeFullscreen();
-  });
+      // Calculate scale from z: front is z close to radius, back is negative radius
+      const scale = 0.5 + 0.5 * ( (z + radius) / (2 * radius) ); // from 0.5 to 1
+      const opacity = 0.3 + 0.7 * ( (z + radius) / (2 * radius) ); // from 0.3 to 1
 
-  // Clicking outside focused window closes it
-  document.body.addEventListener('click', () => {
-    if (focusedWindow) closeFullscreen();
-  });
+      // TranslateZ and scale for 3D effect
+      // Since container has perspective, translateZ works properly
+      win.style.transform = `
+        translateX(${x}px)
+        translateZ(${z}px)
+        translateY(-50%)
+        scale(${scale.toFixed(3)})
+        rotateY(${deg + 180}deg)
+      `;
+      win.style.zIndex = Math.floor(scale * 1000); // closer = higher zIndex
+      win.style.opacity = opacity.toFixed(2);
+      win.style.pointerEvents = playbackActive ? 'none' : 'auto'; // disable interaction in playback mode
 
-  // Drag & drop handling for files
-  window.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropZone.classList.add('active');
-  });
-  window.addEventListener('dragleave', e => {
-    e.preventDefault();
-    dropZone.classList.remove('active');
-  });
-  window.addEventListener('drop', e => {
-    e.preventDefault();
-    dropZone.classList.remove('active');
-
-    const dt = e.dataTransfer;
-    if (!dt) return;
-
-    if (dt.files && dt.files.length > 0) {
-      for (const file of dt.files) {
-        // Only accept images & videos
-        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-          addWindow(file);
-        } else {
-          alert(`File type "${file.type}" not supported. Only images/videos allowed.`);
+      // Reset video playback small preview: mute and pause except focused video
+      if(win.dataset.type === 'video') {
+        const vid = win.querySelector('video');
+        if(!playbackActive) {
+          vid.muted = true;
+          vid.pause();
+          vid.currentTime = 0;
         }
       }
+    });
+  }
+
+  // Drag rotation handlers on container
+  container.addEventListener('mousedown', (e) => {
+    if(playbackActive) return; // no drag in playback
+    isDragging = true;
+    dragStartX = e.clientX;
+    lastDragX = dragStartX;
+    container.style.cursor = 'grabbing';
+  });
+  window.addEventListener('mouseup', (e) => {
+    if(!isDragging) return;
+    isDragging = false;
+    container.style.cursor = 'grab';
+  });
+  window.addEventListener('mousemove', (e) => {
+    if(!isDragging) return;
+    const dx = e.clientX - lastDragX;
+    lastDragX = e.clientX;
+    angle += dx * 0.3; // rotation speed multiplier
+    angle = angle % 360;
+    updateWindowsPositions();
+  });
+
+  container.style.cursor = 'grab';
+
+  // Drag-and-drop file handling for images/videos only
+  window.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+  });
+  window.addEventListener('drop', async e => {
+    e.preventDefault();
+    if(playbackActive) return;
+
+    for(let file of e.dataTransfer.files) {
+      const type = file.type;
+      const url = URL.createObjectURL(file);
+
+      if(type.startsWith('image/')) {
+        createWindow(url, 'image');
+      } else if(type.startsWith('video/')) {
+        createWindow(url, 'video');
+      }
+    }
+    updateWindowsPositions();
+  });
+
+  // Playback mode: open focused video/image
+  function enterPlaybackMode(index) {
+    if(index < 0 || index >= windows.length) return;
+    playbackActive = true;
+    currentPlaybackIndex = index;
+    container.style.pointerEvents = 'none'; // disable canvas interaction
+    playbackOverlay.classList.add('active');
+
+    const win = windows[index];
+    const type = win.dataset.type;
+    const src = win.dataset.src;
+
+    if(type === 'video') {
+      playbackVideo.src = src;
+      playbackVideo.muted = false;
+      playbackVideo.currentTime = 0;
+      playbackVideo.play();
+      muteBtn.textContent = '🔈';
+      muteBtn.setAttribute('aria-pressed', 'false');
+      playPauseBtn.textContent = '⏸️';
+      playPauseBtn.setAttribute('aria-pressed', 'true');
+    } else if(type === 'image') {
+      playbackVideo.pause();
+      playbackVideo.removeAttribute('src');
+      playbackVideo.load();
+      // For images, we simply show the image full screen as background
+      playbackVideo.style.display = 'none';
+      playbackOverlay.style.backgroundImage = `url(${src})`;
+      playbackOverlay.style.backgroundSize = 'contain';
+      playbackOverlay.style.backgroundRepeat = 'no-repeat';
+      playbackOverlay.style.backgroundPosition = 'center';
+    }
+
+    // Animate windows "falling down"
+    windows.forEach((w, i) => {
+      if(i === index) {
+        w.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease';
+        w.style.transform += ' translateY(0) scale(1.1)';
+        w.style.zIndex = 1000;
+        w.style.opacity = 1;
+        w.classList.add('selected');
+      } else {
+        w.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease';
+        w.style.transform += ' translateY(400px)';
+        w.style.opacity = '0.3';
+        w.classList.remove('selected');
+      }
+    });
+  }
+
+  // Exit playback mode: reverse animations & reset
+  function exitPlaybackMode() {
+    if(!playbackActive) return;
+    playbackActive = false;
+    currentPlaybackIndex = -1;
+    container.style.pointerEvents = 'auto';
+    playbackOverlay.classList.remove('active');
+    playbackVideo.style.display = '';
+    playbackVideo.pause();
+    playbackVideo.removeAttribute('src');
+    playbackVideo.load();
+
+    playbackOverlay.style.backgroundImage = '';
+    windows.forEach(w => {
+      w.style.transition = 'transform 0.6s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.5s ease';
+      w.style.opacity = '1';
+      w.classList.remove('selected');
+    });
+    updateWindowsPositions();
+  }
+
+  // Playback Controls Handlers
+  playPauseBtn.addEventListener('click', () => {
+    if(playbackVideo.paused) {
+      playbackVideo.play();
+      playPauseBtn.textContent = '⏸️';
+      playPauseBtn.setAttribute('aria-pressed', 'true');
+    } else {
+      playbackVideo.pause();
+      playPauseBtn.textContent = '▶️';
+      playPauseBtn.setAttribute('aria-pressed', 'false');
+    }
+  });
+  rewindBtn.addEventListener('click', () => {
+    playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 10);
+  });
+  fastForwardBtn.addEventListener('click', () => {
+    playbackVideo.currentTime = Math.min(playbackVideo.duration || playbackVideo.currentTime + 10, playbackVideo.duration);
+  });
+  muteBtn.addEventListener('click', () => {
+    playbackVideo.muted = !playbackVideo.muted;
+    muteBtn.textContent = playbackVideo.muted ? '🔇' : '🔈';
+    muteBtn.setAttribute('aria-pressed', playbackVideo.muted ? 'true' : 'false');
+  });
+  exitBtn.addEventListener('click', exitPlaybackMode);
+
+  // Keyboard support
+  window.addEventListener('keydown', (e) => {
+    if(!playbackActive) return;
+    switch(e.key) {
+      case 'Escape':
+        exitPlaybackMode();
+        break;
+      case ' ':
+        e.preventDefault();
+        if(playbackVideo.paused) playbackVideo.play();
+        else playbackVideo.pause();
+        break;
+      case 'ArrowLeft':
+        playbackVideo.currentTime = Math.max(0, playbackVideo.currentTime - 5);
+        break;
+      case 'ArrowRight':
+        playbackVideo.currentTime = Math.min(playbackVideo.duration || playbackVideo.currentTime + 5, playbackVideo.duration);
+        break;
+      case 'm':
+      case 'M':
+        playbackVideo.muted = !playbackVideo.muted;
+        muteBtn.textContent = playbackVideo.muted ? '🔇' : '🔈';
+        muteBtn.setAttribute('aria-pressed', playbackVideo.muted ? 'true' : 'false');
+        break;
     }
   });
 
-  // Keyboard shortcut: ESC closes fullscreen
-  window.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && focusedWindow) {
-      closeFullscreen();
-    }
-  });
+  // Initialize with cursor style and empty
+  container.style.cursor = 'grab';
 
-  // Initial instructions overlay (optional)
-  const instructions = document.createElement('div');
-  instructions.style.position = 'fixed';
-  instructions.style.bottom = '12px';
-  instructions.style.left = '50%';
-  instructions.style.transform = 'translateX(-50%)';
-  instructions.style.color = 'rgba(255 255 255 / 0.7)';
-  instructions.style.fontSize = '14px';
-  instructions.style.fontWeight = '500';
-  instructions.style.userSelect = 'none';
-  instructions.style.textShadow = '0 0 8px rgba(0,0,0,0.8)';
-  instructions.textContent = 'Drag to rotate. Drop images/videos to add windows. Click window to open fullscreen. ESC or × to close.';
-  document.body.appendChild(instructions);
+  // (Optional) Demo files for testing, remove/comment out in production
+  const demoImages = [
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Example.jpg/320px-Example.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png',
+  ];
+  const demoVideos = [
+    'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm',
+  ];
 
+  demoImages.forEach(url => createWindow(url, 'image'));
+  demoVideos.forEach(url => createWindow(url, 'video'));
+
+  updateWindowsPositions();
 })();
 </script>
-
 </body>
 </html>

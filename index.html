@@ -175,14 +175,11 @@
 
   let openedVideo = null;
   let openedVideoIndex = -1;
-  let openedImageIndex = -1; // for image open state
+  let openedImageIndex = -1;
 
   let easterEggActive = false;
   let easterEggKeyBuffer = [];
   const easterEggSequence = ['g', 'g', 'g', 'g'];
-
-  // Track last mouse drag time to prevent click after drag (fix accidental open)
-  let lastDragTime = 0;
 
   // Setup carousel rotation positions
   function updateCarouselPositions() {
@@ -190,16 +187,10 @@
     const angleStep = 360 / len;
     const radius = 350;
     items.forEach((item, i) => {
-      // Calculate rotation for each item
       const angle = i * angleStep + rotationY;
-      // Convert degrees to radians
       const rad = angle * Math.PI / 180;
-
-      // Position in 3D circle
       const x = radius * Math.sin(rad);
       const z = radius * Math.cos(rad);
-
-      // Apply 3D transform
       item.style.transform = `translateX(${x}px) translateZ(${z}px) translateY(-50%) scale(0.85)`;
       item.style.opacity = z > 0 ? 1 : 0.3;
       item.style.zIndex = Math.round(z);
@@ -215,15 +206,14 @@
       const video = document.createElement('video');
       video.src = src;
       video.preload = 'metadata';
-      video.muted = true; // default muted for no auto audio
+      video.muted = true;
       video.loop = true;
       video.playsInline = true;
-      video.style.pointerEvents = 'none'; // prevent direct controls
-      video.setAttribute('webkit-playsinline', ''); // ios support
+      video.style.pointerEvents = 'none';
+      video.setAttribute('webkit-playsinline', '');
       div.appendChild(video);
       video.load();
 
-      // fix stutter with play in background - autoplay muted
       video.play().catch(() => {});
     } else {
       const img = document.createElement('img');
@@ -238,19 +228,23 @@
 
   // Drag handlers for rotating carousel smoothly (no snap)
   carousel.addEventListener('mousedown', e => {
-    if(e.button !== 0) return; // left click only
+    if(e.button !== 0) return;
     dragging = true;
     dragStartX = e.clientX;
     currentRotationStart = rotationY;
     carousel.style.transition = 'none';
     e.preventDefault();
   });
+
   window.addEventListener('mouseup', e => {
     if(!dragging) return;
     dragging = false;
-    lastDragTime = Date.now(); // FIX: update lastDragTime here
+    lastDragTime = Date.now();
     carousel.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
+    updateCarouselPositions();
   });
+
   window.addEventListener('mousemove', e => {
     if(!dragging) return;
     const deltaX = e.clientX - dragStartX;
@@ -259,39 +253,38 @@
     updateCarouselPositions();
   });
 
-  // Scroll wheel to rotate carousel (CTRL to zoom later if wanted)
+  // Scroll wheel to rotate carousel
   carousel.addEventListener('wheel', e => {
     e.preventDefault();
-    // Ignore accidental clicks on mouseup by setting a timeout
-    if (dragging) return;
+    if(dragging) return;
     rotationY += e.deltaY * 0.5;
     carousel.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
     carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
     updateCarouselPositions();
   }, { passive: false });
 
+  let lastDragTime = 0;
+
   // Open video or image on click with smooth animation
   carousel.addEventListener('click', e => {
-    if (dragging) return;
-    if (Date.now() - lastDragTime < 300) return; // Ignore clicks right after drag
+    if(dragging) return;
+    if(Date.now() - lastDragTime < 300) return;
 
-    let targetItem = e.target.closest('.carousel-item');
-    if (!targetItem) return;
+    const targetItem = e.target.closest('.carousel-item');
+    if(!targetItem) return;
 
-    // If already opened, clicking the open image closes it
-    if (openedImageIndex !== -1) {
-      if (items[openedImageIndex] === targetItem) {
+    // Close opened video or image if clicking the same item again
+    const index = items.indexOf(targetItem);
+    if(openedVideo !== null || openedImageIndex !== -1) {
+      if(index === openedVideoIndex || index === openedImageIndex) {
         closePlayback();
+        return;
+      } else {
+        // Prevent opening new item while one is open
+        return;
       }
-      return;
     }
 
-    if(openedVideo) return; // Already opened video - block opening another
-
-    const index = items.indexOf(targetItem);
-    if(index === -1) return;
-
-    // Only allow video or image
     const video = targetItem.querySelector('video');
     if(video) {
       openVideoPlayback(video, index);
@@ -300,21 +293,18 @@
     }
   });
 
-  // Opens video playback UI and animates layout
+  // Open video playback UI and animate layout
   function openVideoPlayback(videoEl, index) {
     openedVideo = videoEl;
     openedVideoIndex = index;
     openedImageIndex = -1;
 
-    // Make sure video controls hidden, we'll show our UI
     videoEl.muted = false;
     videoEl.pause();
     videoEl.currentTime = 0;
     videoEl.style.pointerEvents = 'auto';
     videoEl.play();
 
-    // Animate carousel items: clicked video center + scale up,
-    // others move down with fade out
     items.forEach((item, i) => {
       if(i === index) {
         item.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
@@ -333,7 +323,7 @@
     updatePlayPauseIcon(true);
   }
 
-  // Open image view (just zoom center, no playback UI)
+  // Open image view (zoom center, no playback UI)
   function openImageView(item, index) {
     openedVideo = null;
     openedVideoIndex = -1;
@@ -365,6 +355,7 @@
       openedVideoIndex = -1;
     }
     openedImageIndex = -1;
+
     playbackUI.classList.remove('visible');
     items.forEach(item => {
       item.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
@@ -378,7 +369,7 @@
   // Playback UI controls
   playbackControls.exit.addEventListener('click', closePlayback);
   playbackControls.exit.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if(e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       closePlayback();
     }
@@ -386,7 +377,7 @@
 
   playbackControls.playpause.addEventListener('click', togglePlayPause);
   playbackControls.playpause.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if(e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       togglePlayPause();
     }
@@ -401,7 +392,7 @@
 
   playbackControls.mute.addEventListener('click', toggleMute);
   playbackControls.mute.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ' ') {
+    if(e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       toggleMute();
     }
@@ -409,16 +400,13 @@
 
   // Keyboard shortcuts
   window.addEventListener('keydown', e => {
-    // Prevent input fields or editable divs from interfering
     if(e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-    // Close playback with ESC
     if(e.key === 'Escape') {
       closePlayback();
       return;
     }
 
-    // Easter egg key buffer
     if(!easterEggActive) {
       easterEggKeyBuffer.push(e.key.toLowerCase());
       if(easterEggKeyBuffer.length > easterEggSequence.length) {
@@ -430,7 +418,6 @@
     }
   });
 
-  // Play/Pause toggle
   function togglePlayPause() {
     if(!openedVideo) return;
     if(openedVideo.paused) {
@@ -442,7 +429,6 @@
     }
   }
 
-  // Mute toggle
   function toggleMute() {
     if(!openedVideo) return;
     openedVideo.muted = !openedVideo.muted;
@@ -469,50 +455,51 @@
     easterEggActive = true;
     easterEggKeyBuffer = [];
 
-    // Hide all carousel items (images/videos)
     items.forEach(item => {
-      item.style.transition = 'opacity 0.5s ease';
-      item.style.opacity = '0';
+      item.style.transition = 'opacity 0.8s ease';
+      item.style.opacity = 0;
+      item.style.pointerEvents = 'none';
     });
-
-    // Play song
-    easterEggAudio.currentTime = 0;
-    easterEggAudio.play();
-
-    // Flash background colors with body class
     document.body.classList.add('easter-egg-flash');
 
-    // After 20 seconds stop everything and reset
-    easterEggTimeout = setTimeout(() => {
-      easterEggAudio.pause();
-      document.body.classList.remove('easter-egg-flash');
+    easterEggAudio.play();
 
-      // Show items again
-      items.forEach(item => {
-        item.style.opacity = '1';
-      });
+    easterEggAudio.addEventListener('ended', () => {
+      deactivateEasterEgg();
+    });
 
-      easterEggActive = false;
-    }, 20000);
+    easterEggTimeout = setTimeout(deactivateEasterEgg, 42000);
   }
 
-  // Initial carousel setup
-  function init() {
-    // Add your images/videos here - example
-    createCarouselItem('https://i.imgur.com/5bQvtxO.jpg', 'image'); // sample image
-    createCarouselItem('https://i.imgur.com/qDqXeIk.jpg', 'image'); // sample image
-    createCarouselItem('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', 'video'); // sample video
-    createCarouselItem('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/bee.webm', 'video'); // sample video
-    createCarouselItem('https://i.imgur.com/7A9iSmV.jpg', 'image'); // sample image
+  function deactivateEasterEgg() {
+    if(!easterEggActive) return;
+    easterEggActive = false;
+    clearTimeout(easterEggTimeout);
+    easterEggAudio.pause();
+    easterEggAudio.currentTime = 0;
 
-    // Center carousel at start
-    rotationY = 0;
-    carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
-    updateCarouselPositions();
+    items.forEach(item => {
+      item.style.opacity = 1;
+      item.style.pointerEvents = 'auto';
+    });
+    document.body.classList.remove('easter-egg-flash');
   }
 
-  init();
+  // Load your images/videos here (replace these with your own URLs)
+  const mediaList = [
+    { src: 'https://cdn.basilisezkid.repl.co/img1.png', type: 'image' },
+    { src: 'https://cdn.basilisezkid.repl.co/img2.png', type: 'image' },
+    { src: 'https://cdn.basilisezkid.repl.co/img3.png', type: 'image' },
+    { src: 'https://cdn.basilisezkid.repl.co/video1.mp4', type: 'video' },
+    { src: 'https://cdn.basilisezkid.repl.co/video2.mp4', type: 'video' },
+    { src: 'https://cdn.basilisezkid.repl.co/img4.png', type: 'image' },
+  ];
 
+  mediaList.forEach(({src, type}) => createCarouselItem(src, type));
+
+  // Initialize carousel transform
+  carousel.style.transform = 'translateZ(-350px) rotateY(0deg)';
+  updateCarouselPositions();
 })();
 </script>
 </body>

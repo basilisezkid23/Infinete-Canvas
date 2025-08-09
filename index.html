@@ -175,10 +175,14 @@
 
   let openedVideo = null;
   let openedVideoIndex = -1;
+  let openedImageIndex = -1; // for image open state
 
   let easterEggActive = false;
   let easterEggKeyBuffer = [];
   const easterEggSequence = ['g', 'g', 'g', 'g'];
+
+  // Track last mouse drag time to prevent click after drag (fix accidental open)
+  let lastDragTime = 0;
 
   // Setup carousel rotation positions
   function updateCarouselPositions() {
@@ -244,6 +248,7 @@
   window.addEventListener('mouseup', e => {
     if(!dragging) return;
     dragging = false;
+    lastDragTime = Date.now(); // FIX: update lastDragTime here
     carousel.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
   });
   window.addEventListener('mousemove', e => {
@@ -265,9 +270,6 @@
     updateCarouselPositions();
   }, { passive: false });
 
-  // Track last mouse drag time to prevent click after drag (fix accidental open)
-  let lastDragTime = 0;
-
   // Open video or image on click with smooth animation
   carousel.addEventListener('click', e => {
     if (dragging) return;
@@ -276,7 +278,15 @@
     let targetItem = e.target.closest('.carousel-item');
     if (!targetItem) return;
 
-    if(openedVideo) return; // Already opened
+    // If already opened, clicking the open image closes it
+    if (openedImageIndex !== -1) {
+      if (items[openedImageIndex] === targetItem) {
+        closePlayback();
+      }
+      return;
+    }
+
+    if(openedVideo) return; // Already opened video - block opening another
 
     const index = items.indexOf(targetItem);
     if(index === -1) return;
@@ -294,6 +304,7 @@
   function openVideoPlayback(videoEl, index) {
     openedVideo = videoEl;
     openedVideoIndex = index;
+    openedImageIndex = -1;
 
     // Make sure video controls hidden, we'll show our UI
     videoEl.muted = false;
@@ -326,6 +337,7 @@
   function openImageView(item, index) {
     openedVideo = null;
     openedVideoIndex = -1;
+    openedImageIndex = index;
 
     items.forEach((el, i) => {
       if(i === index) {
@@ -352,6 +364,7 @@
       openedVideo = null;
       openedVideoIndex = -1;
     }
+    openedImageIndex = -1;
     playbackUI.classList.remove('visible');
     items.forEach(item => {
       item.style.transition = 'transform 0.5s ease, opacity 0.5s ease';

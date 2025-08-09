@@ -3,160 +3,71 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Windows 7 Style Carousel with Video Playback & Easter Egg</title>
+<title>Windows 7 Style Carousel Canvas with Easter Egg</title>
 <style>
-  /* Reset & base */
+  /* Reset */
   * {
     box-sizing: border-box;
-  }
-  body, html {
-    margin: 0; padding: 0;
-    height: 100%;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(180deg, #e3eaf6 0%, #f7f9fc 100%);
-    overflow: hidden;
     user-select: none;
   }
-
-  /* Instructions Overlay */
-  #instructions-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.9);
-    color: white;
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: linear-gradient(180deg, #dce7f8 0%, #f7f9fc 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 9999;
-    padding: 20px;
-    text-align: left;
-  }
-  #instructions-content {
-    background: rgba(30,30,30,0.95);
-    border-radius: 15px;
-    padding: 30px 40px;
-    max-width: 480px;
-    box-shadow: 0 0 25px rgba(255 255 255 / 0.3);
-  }
-  #instructions-content h2 {
-    margin-top: 0;
-    font-weight: 700;
-    font-size: 1.9rem;
-    margin-bottom: 15px;
-    text-align: center;
-  }
-  #instructions-content ul {
-    padding-left: 20px;
-    margin-bottom: 25px;
-    font-size: 1.1rem;
-    line-height: 1.5;
-  }
-  #close-instructions {
-    display: block;
-    margin: 0 auto;
-    background: #0078d7;
-    border: none;
-    color: white;
-    padding: 12px 25px;
-    border-radius: 12px;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    user-select: none;
-  }
-  #close-instructions:hover {
-    background: #005a9e;
   }
 
-  /* Tribute button top-right */
-  #tribute-btn {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: #0078d7;
-    border-radius: 8px;
-    color: white;
-    font-size: 18px;
-    padding: 6px 10px;
-    cursor: pointer;
-    user-select: none;
-    z-index: 999;
-    transition: background 0.3s ease;
+  body.easter-egg-flash {
+    animation: flashColors 1s linear infinite;
   }
-  #tribute-btn:hover {
-    background: #005a9e;
+  @keyframes flashColors {
+    0% { background-color: #ff0000; }
+    33% { background-color: #00ff00; }
+    66% { background-color: #0000ff; }
+    100% { background-color: #ff0000; }
   }
 
-  /* Fullscreen tribute overlay */
-  #tribute-overlay {
-    position: fixed;
-    inset: 0;
-    background: black;
-    color: white;
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    z-index: 10000;
-  }
-  #tribute-text {
-    font-size: 2rem;
-    max-width: 600px;
-    margin-bottom: 20px;
-    opacity: 0;
-    transition: opacity 3s ease;
-    text-align: center;
-    line-height: 1.3;
-  }
-  #tribute-video {
-    max-width: 90vw;
-    max-height: 50vh;
-    border-radius: 12px;
-    box-shadow: 0 0 25px rgba(255 255 255 / 0.5);
-  }
-
-  /* Carousel Container */
   #carousel-container {
-    position: absolute;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 700px;
-    height: 400px;
-    perspective: 1200px;
-    user-select: none;
+    position: relative;
+    width: 80vw;
+    max-width: 900px;
+    height: 60vh;
+    max-height: 540px;
+    perspective: 1500px;
+    overflow: visible;
   }
 
-  /* Carousel */
   #carousel {
+    position: relative;
     width: 100%;
     height: 100%;
-    position: relative;
     transform-style: preserve-3d;
-    transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     cursor: grab;
   }
+  #carousel:active {
+    cursor: grabbing;
+  }
 
-  /* Carousel item */
   .carousel-item {
     position: absolute;
-    width: 240px;
-    height: 160px;
-    left: 50%;
     top: 50%;
-    margin-left: -120px;
-    margin-top: -80px;
+    left: 50%;
+    width: 300px;
+    height: 200px;
+    margin: -100px -150px;
     border-radius: 12px;
-    box-shadow:
-      0 4px 8px rgba(0,0,0,0.3),
-      0 0 15px rgba(0,0,0,0.15);
-    background: #222;
-    overflow: hidden;
-    backface-visibility: hidden;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 12px 24px rgba(0,0,0,0.2);
     transition:
-      transform 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-      box-shadow 0.3s ease;
+      transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      opacity 0.5s ease;
+    overflow: hidden;
+    user-select: none;
   }
 
   .carousel-item img,
@@ -164,624 +75,431 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    user-select: none;
+    border-radius: 12px;
     pointer-events: none;
-  }
-
-  .carousel-item video {
-    pointer-events: auto; /* for playback controls */
-  }
-
-  .carousel-item:hover {
-    box-shadow:
-      0 12px 24px rgba(0,0,0,0.6),
-      0 0 40px rgba(0,0,0,0.3);
   }
 
   /* Playback UI */
   #playback-ui {
     position: fixed;
-    bottom: 25px;
+    bottom: 24px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(255 255 255 / 0.15);
-    backdrop-filter: saturate(180%) blur(12px);
-    border-radius: 20px;
-    padding: 10px 15px;
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
     display: flex;
     align-items: center;
     gap: 20px;
-    width: 350px;
-    max-width: 90vw;
-    color: white;
-    font-size: 0;
-    user-select: none;
-    box-shadow: 0 0 15px rgba(255,255,255,0.3);
-    visibility: hidden;
+    padding: 10px 25px;
     opacity: 0;
-    transition: opacity 0.4s ease;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    width: 320px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     z-index: 9999;
   }
   #playback-ui.visible {
-    visibility: visible;
     opacity: 1;
+    pointer-events: auto;
   }
-  #playback-ui button {
-    background: transparent;
-    border: none;
-    color: white;
-    font-size: 22px;
+
+  /* Control buttons */
+  .control-btn {
     cursor: pointer;
-    user-select: none;
-    outline-offset: 2px;
-    transition: color 0.2s ease;
+    width: 26px;
+    height: 26px;
+    fill: white;
+    transition: transform 0.15s ease;
   }
-  #playback-ui button:hover {
-    color: #0078d7;
-  }
-  #playback-ui button:focus {
-    outline: 2px solid #0078d7;
-    outline-offset: 2px;
+  .control-btn:hover {
+    transform: scale(1.2);
   }
 
-  /* Icons for buttons (simple SVG inline) */
-  #playback-ui button svg {
-    fill: currentColor;
-    width: 20px;
-    height: 20px;
+  /* Hide video default controls */
+  video::-webkit-media-controls {
+    display:none !important;
   }
 
-  /* Image preview overlay (lightbox) */
-  #image-preview-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 10000;
-    cursor: zoom-out;
-    overflow: hidden;
-    transition: opacity 0.3s ease;
-  }
-  #image-preview-overlay[aria-hidden="false"] {
-    display: flex;
-  }
-  #preview-image {
-    max-width: 90vw;
-    max-height: 90vh;
-    border-radius: 12px;
-    box-shadow: 0 0 30px rgba(255,255,255,0.7);
-    transform: scale(0.8);
-    transition: transform 0.3s ease;
-  }
-  #image-preview-overlay[aria-hidden="false"] #preview-image {
-    transform: scale(1);
-  }
 </style>
 </head>
 <body>
-
-<!-- Instructions Overlay -->
-<div id="instructions-overlay" role="dialog" aria-modal="true" aria-label="How to use instructions">
-  <div id="instructions-content">
-    <h2>How to Use</h2>
-    <ul>
-      <li>Drag and drop images or videos onto the carousel below to add them.</li>
-      <li>Click or tap on an item to open it (videos play with controls, images open fullscreen).</li>
-      <li>Drag left/right on the carousel to rotate through items smoothly.</li>
-      <li>Press <strong>G</strong> 4 times quickly for a surprise Easter egg!</li>
-      <li>Use the playback controls at the bottom for video control.</li>
-      <li>Click the 🇬🇷 Tribute button at the top right for a special message.</li>
-      <li>Press ESC to exit video or image playback or tribute.</li>
-    </ul>
-    <button id="close-instructions">Got it!</button>
+  <div id="carousel-container">
+    <div id="carousel"></div>
   </div>
-</div>
 
-<!-- Tribute button -->
-<button id="tribute-btn" title="Tribute to Greece 🇬🇷">🇬🇷</button>
-
-<!-- Tribute overlay -->
-<div id="tribute-overlay" aria-hidden="true" role="dialog" aria-modal="true" tabindex="-1">
-  <div id="tribute-text"></div>
-  <video id="tribute-video" controls preload="auto" crossorigin="anonymous"></video>
-</div>
-
-<!-- Carousel container -->
-<div id="carousel-container" aria-label="Image and video carousel" role="list"></div>
-
-<!-- Playback UI -->
-<div id="playback-ui" aria-label="Video playback controls">
-  <button id="playback-exit" title="Exit video playback" aria-label="Exit video playback">
-    <!-- X icon -->
-    <svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-  </button>
-  <button id="playback-rewind" title="Rewind 5 seconds" aria-label="Rewind 5 seconds">
-    <!-- rewind icon -->
-    <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
-  <button id="playback-play" title="Play/Pause" aria-label="Play or pause video">
-    <!-- play icon -->
-    <svg id="play-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-    <svg id="pause-icon" viewBox="0 0 24 24" style="display:none;"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
-  </button>
-  <button id="playback-forward" title="Fast forward 5 seconds" aria-label="Fast forward 5 seconds">
-    <!-- forward icon -->
-    <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
-  <button id="playback-mute" title="Mute/Unmute" aria-label="Mute or unmute video">
-    <!-- speaker icon -->
-    <svg id="volume-on-icon" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4L9 9H5z"/></svg>
-    <svg id="volume-off-icon" viewBox="0 0 24 24" style="display:none;"><path d="M16 7l-1.41-1.41L12 8.17 9.41 5.59 8 7l3 3-3 3 1.41 1.41L12 13.83l2.59 2.58L16 17l-3-3 3-3z"/></svg>
-  </button>
-</div>
-
-<!-- Image preview overlay -->
-<div id="image-preview-overlay" aria-hidden="true" role="dialog" tabindex="-1">
-  <img id="preview-image" src="" alt="Image preview" />
-</div>
+  <!-- Playback controls -->
+  <div id="playback-ui" aria-label="Video playback controls">
+    <svg id="btn-exit" class="control-btn" viewBox="0 0 24 24" title="Exit playback" role="button" tabindex="0" aria-pressed="false" aria-label="Exit playback">
+      <path d="M6 6 L18 18 M18 6 L6 18" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <svg id="btn-rewind" class="control-btn" viewBox="0 0 24 24" title="Rewind 10s" role="button" tabindex="0" aria-label="Rewind 10 seconds">
+      <path d="M11 19V5l-7 7 7 7zM18 19V5l-7 7 7 7z" fill="white"/>
+    </svg>
+    <svg id="btn-playpause" class="control-btn" viewBox="0 0 24 24" title="Play/Pause" role="button" tabindex="0" aria-label="Play or pause">
+      <path id="play-icon" d="M8 5v14l11-7z" fill="white"/>
+      <rect id="pause-icon" x="8" y="5" width="3" height="14" fill="white" style="display:none"/>
+      <rect id="pause-icon2" x="14" y="5" width="3" height="14" fill="white" style="display:none"/>
+    </svg>
+    <svg id="btn-forward" class="control-btn" viewBox="0 0 24 24" title="Forward 10s" role="button" tabindex="0" aria-label="Forward 10 seconds">
+      <path d="M13 5v14l7-7-7-7zM6 5v14l7-7-7-7z" fill="white"/>
+    </svg>
+    <svg id="btn-mute" class="control-btn" viewBox="0 0 24 24" title="Mute/Unmute" role="button" tabindex="0" aria-label="Mute or unmute">
+      <path id="volume-on" d="M5 9v6h4l5 5V4L9 9H5z" fill="white"/>
+      <path id="volume-off" d="M16.5 12l4.5 4.5-1.5 1.5L15 13.5l-4.5 4.5-1.5-1.5L13.5 12 9 7.5l1.5-1.5L15 10.5l4.5-4.5 1.5 1.5L16.5 12z" fill="white" style="display:none"/>
+    </svg>
+  </div>
 
 <script>
 (() => {
-  // Elements refs
-  const instructionsOverlay = document.getElementById('instructions-overlay');
-  const closeInstructionsBtn = document.getElementById('close-instructions');
-  const carouselContainer = document.getElementById('carousel-container');
+  const carousel = document.getElementById('carousel');
   const playbackUI = document.getElementById('playback-ui');
-  const playbackExitBtn = document.getElementById('playback-exit');
-  const playbackRewindBtn = document.getElementById('playback-rewind');
-  const playbackPlayBtn = document.getElementById('playback-play');
-  const playbackForwardBtn = document.getElementById('playback-forward');
-  const playbackMuteBtn = document.getElementById('playback-mute');
-  const playIcon = document.getElementById('play-icon');
-  const pauseIcon = document.getElementById('pause-icon');
-  const volumeOnIcon = document.getElementById('volume-on-icon');
-  const volumeOffIcon = document.getElementById('volume-off-icon');
-  const tributeBtn = document.getElementById('tribute-btn');
-  const tributeOverlay = document.getElementById('tribute-overlay');
-  const tributeText = document.getElementById('tribute-text');
-  const tributeVideo = document.getElementById('tribute-video');
+  const playbackControls = {
+    exit: document.getElementById('btn-exit'),
+    rewind: document.getElementById('btn-rewind'),
+    playpause: document.getElementById('btn-playpause'),
+    forward: document.getElementById('btn-forward'),
+    mute: document.getElementById('btn-mute'),
+    playIcon: document.getElementById('play-icon'),
+    pauseIcon1: document.getElementById('pause-icon'),
+    pauseIcon2: document.getElementById('pause-icon2'),
+    volumeOn: document.getElementById('volume-on'),
+    volumeOff: document.getElementById('volume-off')
+  };
 
-  // Image preview elements
-  const imagePreviewOverlay = document.getElementById('image-preview-overlay');
-  const previewImage = document.getElementById('preview-image');
-
-  // Carousel state
-  let items = []; // {type: "image"|"video", element, url, rotation}
+  let items = [];
   let rotationY = 0;
-  let isDragging = false;
+  let dragging = false;
   let dragStartX = 0;
-  let lastRotationY = 0;
-  let animationFrameId = null;
-  const radius = 350;
+  let currentRotationStart = 0;
 
-  // Playback state
-  let currentPlayingIndex = null;
-  let currentVideo = null;
-  let isMuted = false;
+  let openedVideo = null;
+  let openedVideoIndex = -1;
 
-  // Easter egg state
   let easterEggActive = false;
-  let easterEggTimeout = null;
-  let easterEggColors = ['red', 'green', 'blue'];
-  let easterEggColorIndex = 0;
-  let easterEggFlashInterval = null;
-  const easterEggDuration = 20000; // 20 seconds
+  let easterEggKeyBuffer = [];
+  const easterEggSequence = ['g', 'g', 'g', 'g'];
 
-  // Easter egg audio
-  const easterEggAudio = new Audio('https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/Lensko%20-%20Let%27s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3');
-  easterEggAudio.crossOrigin = "anonymous";
-  easterEggAudio.loop = false;
-
-  // Tribute video URL (raw)
-  const tributeVideoUrl = 'https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/macedonia%20is%20greek.mp4';
-
-  // Easter egg key sequence: press G 4 times quickly
-  let easterEggKeyCount = 0;
-  let easterEggKeyTimeout = null;
-
-  // Helpers
-
-  // Update carousel positions and transforms
+  // Setup carousel rotation positions
   function updateCarouselPositions() {
-    const N = items.length;
-    if (N === 0) return;
-    const anglePerItem = 360 / N;
+    const len = items.length;
+    const angleStep = 360 / len;
+    const radius = 350;
     items.forEach((item, i) => {
-      const itemAngle = rotationY + i * anglePerItem;
-      item.rotation = itemAngle;
-      const rad = (itemAngle * Math.PI) / 180;
+      // Calculate rotation for each item
+      const angle = i * angleStep + rotationY;
+      // Convert degrees to radians
+      const rad = angle * Math.PI / 180;
+
+      // Position in 3D circle
       const x = radius * Math.sin(rad);
       const z = radius * Math.cos(rad);
-      // perspective and transform
-      item.element.style.transform = `translateX(${x}px) translateZ(${z}px) rotateY(${itemAngle}deg) translateY(-50%) translateX(-50%)`;
-      // z-index by depth (higher z means front)
-      const depth = Math.cos(rad);
-      item.element.style.zIndex = Math.floor((depth + 1) * 100);
-      // subtle scale for front items
-      const scale = 0.8 + 0.4 * depth;
-      item.element.style.opacity = 0.3 + 0.7 * depth;
-      item.element.style.pointerEvents = depth > 0.1 ? 'auto' : 'none';
-      item.element.style.filter = `drop-shadow(0 4px 8px rgba(0,0,0,${0.3 * depth}))`;
-      item.element.style.transition = easterEggActive ? 'none' : 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease';
-      item.element.style.scale = scale;
+
+      // Apply 3D transform
+      item.style.transform = `translateX(${x}px) translateZ(${z}px) translateY(-50%) scale(0.85)`;
+      item.style.opacity = z > 0 ? 1 : 0.3;
+      item.style.zIndex = Math.round(z);
     });
   }
 
-  // Initialize carousel container
-  function initCarousel() {
-    carouselContainer.innerHTML = '';
-    items.forEach(({ element }) => carouselContainer.appendChild(element));
-    rotationY = 0;
-    updateCarouselPositions();
-  }
+  // Create a carousel item from an image or video src
+  function createCarouselItem(src, type) {
+    const div = document.createElement('div');
+    div.classList.add('carousel-item');
 
-  // Create item elements
-  function createCarouselItem(type, url) {
-    const item = document.createElement('div');
-    item.className = 'carousel-item';
-    item.tabIndex = 0;
-    item.setAttribute('role', 'listitem');
-    item.setAttribute('aria-label', `${type} item`);
-
-    if (type === 'image') {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = 'User added image';
-      item.appendChild(img);
-    } else if (type === 'video') {
+    if(type === 'video') {
       const video = document.createElement('video');
-      video.src = url;
+      video.src = src;
       video.preload = 'metadata';
-      video.muted = true;
-      video.loop = false;
-      video.controls = false;
-      item.appendChild(video);
-    }
-    return item;
-  }
+      video.muted = true; // default muted for no auto audio
+      video.loop = true;
+      video.playsInline = true;
+      video.style.pointerEvents = 'none'; // prevent direct controls
+      video.setAttribute('webkit-playsinline', ''); // ios support
+      div.appendChild(video);
+      video.load();
 
-  // Add new item to carousel
-  function addItem(type, url) {
-    const element = createCarouselItem(type, url);
-    items.push({ type, element, url, rotation: 0 });
-    carouselContainer.appendChild(element);
+      // fix stutter with play in background - autoplay muted
+      video.play().catch(() => {});
+    } else {
+      const img = document.createElement('img');
+      img.src = src;
+      img.draggable = false;
+      div.appendChild(img);
+    }
+    carousel.appendChild(div);
+    items.push(div);
     updateCarouselPositions();
   }
 
-  // Open video playback UI with selected video
-  function openItem(index) {
-    if (index < 0 || index >= items.length) return;
-    const item = items[index];
-    if (item.type !== 'video') return;
-    if (currentPlayingIndex !== null) closePlayback();
-
-    currentPlayingIndex = index;
-    currentVideo = item.element.querySelector('video');
-    currentVideo.muted = isMuted;
-    currentVideo.controls = false;
-    currentVideo.currentTime = 0;
-    currentVideo.play();
-
-    playbackUI.classList.add('visible');
-    updatePlaybackPlayPauseIcons();
-  }
-
-  // Close video playback UI
-  function closePlayback() {
-    if (currentVideo) {
-      currentVideo.pause();
-      currentVideo.currentTime = 0;
-    }
-    currentPlayingIndex = null;
-    currentVideo = null;
-    playbackUI.classList.remove('visible');
-  }
-
-  // Toggle play/pause video
-  function togglePlayPause() {
-    if (!currentVideo) return;
-    if (currentVideo.paused) {
-      currentVideo.play();
-    } else {
-      currentVideo.pause();
-    }
-    updatePlaybackPlayPauseIcons();
-  }
-
-  // Update play/pause icons based on video state
-  function updatePlaybackPlayPauseIcons() {
-    if (!currentVideo) return;
-    if (currentVideo.paused) {
-      playIcon.style.display = 'inline';
-      pauseIcon.style.display = 'none';
-    } else {
-      playIcon.style.display = 'none';
-      pauseIcon.style.display = 'inline';
-    }
-  }
-
-  // Rewind video 5 seconds
-  function rewindVideo() {
-    if (!currentVideo) return;
-    currentVideo.currentTime = Math.max(0, currentVideo.currentTime - 5);
-  }
-
-  // Fast forward video 5 seconds
-  function forwardVideo() {
-    if (!currentVideo) return;
-    currentVideo.currentTime = Math.min(currentVideo.duration, currentVideo.currentTime + 5);
-  }
-
-  // Toggle mute/unmute video
-  function toggleMute() {
-    if (!currentVideo) return;
-    isMuted = !isMuted;
-    currentVideo.muted = isMuted;
-    volumeOnIcon.style.display = isMuted ? 'none' : 'inline';
-    volumeOffIcon.style.display = isMuted ? 'inline' : 'none';
-  }
-
-  // Tribute button open/close
-  function openTribute() {
-    tributeOverlay.style.display = 'flex';
-    tributeOverlay.setAttribute('aria-hidden', 'false');
-    tributeText.style.opacity = '0';
-    tributeText.textContent = "To Greece, from the bottom of our hearts, your legacy lives on...";
-    tributeVideo.src = tributeVideoUrl;
-    tributeVideo.play();
-    tributeVideo.style.display = 'block';
-    tributeVideo.setAttribute('aria-hidden', 'false');
-
-    // Fade in tribute text
-    setTimeout(() => {
-      tributeText.style.opacity = '1';
-    }, 100);
-
-    document.body.style.overflow = 'hidden'; // Prevent background scroll
-  }
-  function closeTribute() {
-    tributeOverlay.style.display = 'none';
-    tributeOverlay.setAttribute('aria-hidden', 'true');
-    tributeVideo.pause();
-    tributeVideo.currentTime = 0;
-    tributeVideo.style.display = 'none';
-    tributeVideo.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = ''; // Restore scroll
-  }
-
-  // Open image preview overlay with smooth animation
-  function openImagePreview(url) {
-    previewImage.src = url;
-    imagePreviewOverlay.style.opacity = '0';
-    imagePreviewOverlay.style.display = 'flex';
-    imagePreviewOverlay.setAttribute('aria-hidden', 'false');
-    previewImage.style.transform = 'scale(0.8)';
-    document.body.style.overflow = 'hidden'; // prevent scrolling
-
-    // Animate in
-    requestAnimationFrame(() => {
-      imagePreviewOverlay.style.opacity = '1';
-      previewImage.style.transform = 'scale(1)';
-    });
-  }
-  // Close image preview overlay
-  function closeImagePreview() {
-    previewImage.style.transform = 'scale(0.8)';
-    imagePreviewOverlay.style.opacity = '0';
-    imagePreviewOverlay.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-
-    setTimeout(() => {
-      imagePreviewOverlay.style.display = 'none';
-      previewImage.src = '';
-    }, 300);
-  }
-
-  // Drag & drop file handling
-  function handleFiles(files) {
-    for (const file of files) {
-      if (file.type.startsWith('image/')) {
-        const url = URL.createObjectURL(file);
-        addItem('image', url);
-      } else if (file.type.startsWith('video/')) {
-        const url = URL.createObjectURL(file);
-        addItem('video', url);
-      }
-    }
-  }
-
-  // Mouse/touch drag for carousel rotation
-  function onDragStart(e) {
-    if (e.target.closest('#playback-ui') || e.target.closest('#tribute-overlay') || e.target.closest('#image-preview-overlay')) {
-      return; // block drag when overlays active
-    }
-    isDragging = true;
-    dragStartX = e.clientX || e.touches[0].clientX;
-    lastRotationY = rotationY;
-    carouselContainer.style.cursor = 'grabbing';
+  // Drag handlers for rotating carousel smoothly (no snap)
+  carousel.addEventListener('mousedown', e => {
+    if(e.button !== 0) return; // left click only
+    dragging = true;
+    dragStartX = e.clientX;
+    currentRotationStart = rotationY;
+    carousel.style.transition = 'none';
     e.preventDefault();
-  }
-  function onDragMove(e) {
-    if (!isDragging) return;
-    const x = e.clientX || e.touches[0].clientX;
-    const deltaX = x - dragStartX;
-    rotationY = lastRotationY + deltaX * 0.4;
+  });
+  window.addEventListener('mouseup', e => {
+    if(!dragging) return;
+    dragging = false;
+    carousel.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+  });
+  window.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const deltaX = e.clientX - dragStartX;
+    rotationY = currentRotationStart + deltaX * 0.3;
+    carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
     updateCarouselPositions();
-  }
-  function onDragEnd(e) {
-    isDragging = false;
-    carouselContainer.style.cursor = 'grab';
-  }
+  });
 
-  // Carousel click handler (open video or image)
-  carouselContainer.addEventListener('click', e => {
-    if (isDragging) return; // prevent click if dragging
+  // Scroll wheel to rotate carousel (CTRL to zoom later if wanted)
+  carousel.addEventListener('wheel', e => {
+    e.preventDefault();
+    // Ignore accidental clicks on mouseup by setting a timeout
+    if (dragging) return;
+    rotationY += e.deltaY * 0.5;
+    carousel.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
+    updateCarouselPositions();
+  }, { passive: false });
 
-    let target = e.target;
-    while (target && !target.classList.contains('carousel-item')) {
-      target = target.parentElement;
-    }
-    if (!target) return;
+  // Track last mouse drag time to prevent click after drag (fix accidental open)
+  let lastDragTime = 0;
 
-    const idx = items.findIndex(i => i.element === target);
-    if (idx === -1) return;
+  // Open video or image on click with smooth animation
+  carousel.addEventListener('click', e => {
+    if (dragging) return;
+    if (Date.now() - lastDragTime < 300) return; // Ignore clicks right after drag
 
-    const item = items[idx];
-    if (item.type === 'video') {
-      openItem(idx);
-    } else if (item.type === 'image') {
-      openImagePreview(item.url);
+    let targetItem = e.target.closest('.carousel-item');
+    if (!targetItem) return;
+
+    if(openedVideo) return; // Already opened
+
+    const index = items.indexOf(targetItem);
+    if(index === -1) return;
+
+    // Only allow video or image
+    const video = targetItem.querySelector('video');
+    if(video) {
+      openVideoPlayback(video, index);
+    } else {
+      openImageView(targetItem, index);
     }
   });
 
-  // Playback UI button handlers
-  playbackExitBtn.addEventListener('click', closePlayback);
-  playbackRewindBtn.addEventListener('click', rewindVideo);
-  playbackPlayBtn.addEventListener('click', togglePlayPause);
-  playbackForwardBtn.addEventListener('click', forwardVideo);
-  playbackMuteBtn.addEventListener('click', toggleMute);
+  // Opens video playback UI and animates layout
+  function openVideoPlayback(videoEl, index) {
+    openedVideo = videoEl;
+    openedVideoIndex = index;
 
-  // Playback video pause/play events update icons
-  playbackUI.addEventListener('click', e => e.stopPropagation());
-  document.addEventListener('keydown', e => {
-    if (!currentVideo) return;
-    if (e.key === ' ') {
+    // Make sure video controls hidden, we'll show our UI
+    videoEl.muted = false;
+    videoEl.pause();
+    videoEl.currentTime = 0;
+    videoEl.style.pointerEvents = 'auto';
+    videoEl.play();
+
+    // Animate carousel items: clicked video center + scale up,
+    // others move down with fade out
+    items.forEach((item, i) => {
+      if(i === index) {
+        item.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+        item.style.transform = 'translate3d(0, 0, 0) scale(1.6)';
+        item.style.zIndex = 10000;
+        item.style.opacity = 1;
+      } else {
+        item.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+        item.style.transform = 'translate3d(0, 200px, 0) scale(0.8)';
+        item.style.opacity = 0.15;
+        item.style.zIndex = 0;
+      }
+    });
+
+    playbackUI.classList.add('visible');
+    updatePlayPauseIcon(true);
+  }
+
+  // Open image view (just zoom center, no playback UI)
+  function openImageView(item, index) {
+    openedVideo = null;
+    openedVideoIndex = -1;
+
+    items.forEach((el, i) => {
+      if(i === index) {
+        el.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+        el.style.transform = 'translate3d(0, 0, 0) scale(1.6)';
+        el.style.zIndex = 10000;
+        el.style.opacity = 1;
+      } else {
+        el.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+        el.style.transform = 'translate3d(0, 200px, 0) scale(0.8)';
+        el.style.opacity = 0.15;
+        el.style.zIndex = 0;
+      }
+    });
+
+    playbackUI.classList.remove('visible');
+  }
+
+  // Close playback / image view, reset carousel
+  function closePlayback() {
+    if(openedVideo) {
+      openedVideo.pause();
+      openedVideo.style.pointerEvents = 'none';
+      openedVideo = null;
+      openedVideoIndex = -1;
+    }
+    playbackUI.classList.remove('visible');
+    items.forEach(item => {
+      item.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+      item.style.transform = '';
+      item.style.opacity = 1;
+      item.style.zIndex = '';
+    });
+    updateCarouselPositions();
+  }
+
+  // Playback UI controls
+  playbackControls.exit.addEventListener('click', closePlayback);
+  playbackControls.exit.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      closePlayback();
+    }
+  });
+
+  playbackControls.playpause.addEventListener('click', togglePlayPause);
+  playbackControls.playpause.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       togglePlayPause();
     }
   });
 
-  // Video pause/play state changes update play/pause icons
-  document.addEventListener('play', e => {
-    if (e.target === currentVideo) updatePlaybackPlayPauseIcons();
-  }, true);
-  document.addEventListener('pause', e => {
-    if (e.target === currentVideo) updatePlaybackPlayPauseIcons();
-  }, true);
+  playbackControls.rewind.addEventListener('click', () => {
+    if(openedVideo) openedVideo.currentTime = Math.max(0, openedVideo.currentTime - 10);
+  });
+  playbackControls.forward.addEventListener('click', () => {
+    if(openedVideo) openedVideo.currentTime = Math.min(openedVideo.duration, openedVideo.currentTime + 10);
+  });
 
-  // Tribute button
-  tributeBtn.addEventListener('click', () => {
-    if (tributeOverlay.style.display === 'flex') {
-      closeTribute();
-    } else {
-      openTribute();
+  playbackControls.mute.addEventListener('click', toggleMute);
+  playbackControls.mute.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleMute();
     }
   });
 
-  // Close tribute with ESC
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      if (tributeOverlay.style.display === 'flex') {
-        closeTribute();
-      }
-      if (currentPlayingIndex !== null) {
-        closePlayback();
-      }
-      if (imagePreviewOverlay.style.display === 'flex') {
-        closeImagePreview();
-      }
-    }
-  });
-
-  // Close image preview on overlay click
-  imagePreviewOverlay.addEventListener('click', closeImagePreview);
-
-  // Drag & drop listeners
-  window.addEventListener('dragover', e => e.preventDefault());
-  window.addEventListener('drop', e => {
-    e.preventDefault();
-    if (e.dataTransfer.files.length) {
-      handleFiles(e.dataTransfer.files);
-    }
-  });
-
-  // Carousel drag handlers
-  carouselContainer.addEventListener('mousedown', onDragStart);
-  window.addEventListener('mousemove', onDragMove);
-  window.addEventListener('mouseup', onDragEnd);
-  carouselContainer.addEventListener('touchstart', onDragStart, {passive: false});
-  window.addEventListener('touchmove', onDragMove, {passive: false});
-  window.addEventListener('touchend', onDragEnd);
-
-  // Easter egg key press sequence for 'G' 4 times quickly
+  // Keyboard shortcuts
   window.addEventListener('keydown', e => {
-    if (e.key.toLowerCase() === 'g') {
-      easterEggKeyCount++;
-      if (easterEggKeyTimeout) clearTimeout(easterEggKeyTimeout);
-      easterEggKeyTimeout = setTimeout(() => {
-        easterEggKeyCount = 0;
-      }, 1500);
-      if (easterEggKeyCount === 4) {
-        easterEggKeyCount = 0;
-        toggleEasterEgg();
+    // Prevent input fields or editable divs from interfering
+    if(e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    // Close playback with ESC
+    if(e.key === 'Escape') {
+      closePlayback();
+      return;
+    }
+
+    // Easter egg key buffer
+    if(!easterEggActive) {
+      easterEggKeyBuffer.push(e.key.toLowerCase());
+      if(easterEggKeyBuffer.length > easterEggSequence.length) {
+        easterEggKeyBuffer.shift();
+      }
+      if(easterEggKeyBuffer.join('') === easterEggSequence.join('')) {
+        activateEasterEgg();
       }
     }
   });
 
-  // Easter egg toggle
-  function toggleEasterEgg() {
-    if (easterEggActive) {
-      disableEasterEgg();
+  // Play/Pause toggle
+  function togglePlayPause() {
+    if(!openedVideo) return;
+    if(openedVideo.paused) {
+      openedVideo.play();
+      updatePlayPauseIcon(true);
     } else {
-      enableEasterEgg();
+      openedVideo.pause();
+      updatePlayPauseIcon(false);
     }
   }
-  function enableEasterEgg() {
-    easterEggActive = true;
-    easterEggAudio.play();
-    startEasterEggFlash();
-    setTimeout(disableEasterEgg, easterEggDuration);
+
+  // Mute toggle
+  function toggleMute() {
+    if(!openedVideo) return;
+    openedVideo.muted = !openedVideo.muted;
+    updateMuteIcon(openedVideo.muted);
   }
-  function disableEasterEgg() {
-    easterEggActive = false;
-    easterEggAudio.pause();
-    easterEggAudio.currentTime = 0;
-    stopEasterEggFlash();
-    // Reset carousel styles
+
+  function updatePlayPauseIcon(isPlaying) {
+    playbackControls.playIcon.style.display = isPlaying ? 'none' : 'block';
+    playbackControls.pauseIcon1.style.display = isPlaying ? 'block' : 'none';
+    playbackControls.pauseIcon2.style.display = isPlaying ? 'block' : 'none';
+  }
+  function updateMuteIcon(isMuted) {
+    playbackControls.volumeOn.style.display = isMuted ? 'none' : 'block';
+    playbackControls.volumeOff.style.display = isMuted ? 'block' : 'none';
+  }
+
+  // Easter egg: play song, hide images, flash colors, then revert
+  let easterEggTimeout;
+  const easterEggSongURL = 'https://raw.githubusercontent.com/basilisezkid23/Infinete-Canvas/main/Lensko%20-%20Let%27s%20Go_%20_%20House%20_%20NCS%20-%20Copyright%20Free%20Music%20%5BmSLuJYtl89Y%5D.mp3';
+  const easterEggAudio = new Audio(easterEggSongURL);
+  easterEggAudio.loop = false;
+
+  function activateEasterEgg() {
+    easterEggActive = true;
+    easterEggKeyBuffer = [];
+
+    // Hide all carousel items (images/videos)
     items.forEach(item => {
-      item.element.style.transition = 'transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.5s ease';
-      item.element.style.filter = '';
-      item.element.style.color = '';
-      item.element.style.background = '';
+      item.style.transition = 'opacity 0.5s ease';
+      item.style.opacity = '0';
     });
+
+    // Play song
+    easterEggAudio.currentTime = 0;
+    easterEggAudio.play();
+
+    // Flash background colors with body class
+    document.body.classList.add('easter-egg-flash');
+
+    // After 20 seconds stop everything and reset
+    easterEggTimeout = setTimeout(() => {
+      easterEggAudio.pause();
+      document.body.classList.remove('easter-egg-flash');
+
+      // Show items again
+      items.forEach(item => {
+        item.style.opacity = '1';
+      });
+
+      easterEggActive = false;
+    }, 20000);
+  }
+
+  // Initial carousel setup
+  function init() {
+    // Add your images/videos here - example
+    createCarouselItem('https://i.imgur.com/5bQvtxO.jpg', 'image'); // sample image
+    createCarouselItem('https://i.imgur.com/qDqXeIk.jpg', 'image'); // sample image
+    createCarouselItem('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm', 'video'); // sample video
+    createCarouselItem('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/bee.webm', 'video'); // sample video
+    createCarouselItem('https://i.imgur.com/7A9iSmV.jpg', 'image'); // sample image
+
+    // Center carousel at start
+    rotationY = 0;
+    carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
     updateCarouselPositions();
   }
-  function startEasterEggFlash() {
-    easterEggFlashInterval = setInterval(() => {
-      items.forEach(item => {
-        const color = easterEggColors[easterEggColorIndex];
-        item.element.style.filter = `drop-shadow(0 0 8px ${color})`;
-        item.element.style.borderColor = color;
-      });
-      easterEggColorIndex = (easterEggColorIndex + 1) % easterEggColors.length;
-    }, 350);
-  }
-  function stopEasterEggFlash() {
-    clearInterval(easterEggFlashInterval);
-    easterEggFlashInterval = null;
-  }
 
-  // Close instructions overlay
-  closeInstructionsBtn.addEventListener('click', () => {
-    instructionsOverlay.style.display = 'none';
-  });
+  init();
 
-  // Initial load demo items (replace with your own as needed)
-  function loadDemoItems() {
-    // Example images/videos to demo carousel
-    addItem('image', 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Windows_logo_-_2021.svg/600px-Windows_logo_-_2021.svg.png');
-    addItem('image', 'https://upload.wikimedia.org/wikipedia/commons/5/59/Windows_7_Logo.svg');
-    addItem('video', 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm');
-  }
-
-  // Initialize
-  loadDemoItems();
-  initCarousel();
-
-  // Initial cursor style
-  carouselContainer.style.cursor = 'grab';
 })();
 </script>
 </body>

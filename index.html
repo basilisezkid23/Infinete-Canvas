@@ -240,7 +240,7 @@
     if(!dragging) return;
     dragging = false;
     lastDragTime = Date.now();
-    carousel.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    carousel.style.transition = 'transform 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
     carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
     updateCarouselPositions();
   });
@@ -249,7 +249,7 @@
     if(!dragging) return;
     const deltaX = e.clientX - dragStartX;
     rotationY = currentRotationStart + deltaX * 0.3;
-    carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
+    carousel.style.transform = `translateZ(-350px);
     updateCarouselPositions();
   });
 
@@ -259,13 +259,13 @@
     if(dragging) return;
     rotationY += e.deltaY * 0.5;
     carousel.style.transition = 'transform 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-    carousel.style.transform = `translateZ(-350px) rotateY(${rotationY}deg)`;
+    carousel.style.transform = `translateZ(-350px);
     updateCarouselPositions();
   }, { passive: false });
 
   let lastDragTime = 0;
 
-  // Open video or image on click with smooth animation
+  // Open video or image on click with smooth animation + added requests from localhost to get playback controls (video only)
   carousel.addEventListener('click', e => {
     if(dragging) return;
     if(Date.now() - lastDragTime < 300) return;
@@ -280,7 +280,7 @@
         closePlayback();
         return;
       } else {
-        // Prevent opening new item while one is open
+        // Change 4: Disabled/fixed images turning when wheel registers.
         return;
       }
     }
